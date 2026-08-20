@@ -36,8 +36,13 @@ impl Collector for SysinfoCollector {
         let total_swap = self.system.total_swap();
         let used_swap = self.system.used_swap();
         let cpu = CpuSnapshot {
-            total_usage: f64::from(self.system.global_cpu_info().cpu_usage()),
-            per_core: self.system.cpus().iter().map(|cpu| f64::from(cpu.cpu_usage())).collect(),
+            total_usage: finite_or_zero(f64::from(self.system.global_cpu_info().cpu_usage())),
+            per_core: self
+                .system
+                .cpus()
+                .iter()
+                .map(|cpu| finite_or_zero(f64::from(cpu.cpu_usage())))
+                .collect(),
         };
         let memory = MemorySnapshot {
             total_bytes: total_memory,
@@ -105,6 +110,14 @@ impl Collector for SysinfoCollector {
             networks,
             processes,
         })
+    }
+}
+
+fn finite_or_zero(value: f64) -> f64 {
+    if value.is_finite() {
+        value
+    } else {
+        0.0
     }
 }
 
