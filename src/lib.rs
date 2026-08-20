@@ -1,0 +1,9 @@
+pub mod alerts;
+pub mod app;
+pub mod cli;
+pub mod collector;
+pub mod config;
+pub mod history;
+pub mod model;
+pub mod recording;
+pub mod tui;
