@@ -23,12 +23,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/PrakashSewani/rstats.git"
+    "url": "https://github.com/PrakashSewani/rstats-cli.git"
   },
   "bugs": {
-    "url": "https://github.com/PrakashSewani/rstats/issues"
+    "url": "https://github.com/PrakashSewani/rstats-cli/issues"
   },
-  "homepage": "https://github.com/PrakashSewani/rstats",
+  "homepage": "https://github.com/PrakashSewani/rstats-cli",
   "publishConfig": {
     "access": "public"
   }
