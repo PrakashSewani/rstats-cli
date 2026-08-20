@@ -5,6 +5,10 @@ edition = "2021"
 rust-version = "1.75"
 description = "Cross-platform terminal system resource monitor"
 license = "MIT"
+repository = "https://github.com/PrakashSewani/rstats"
+homepage = "https://github.com/PrakashSewani/rstats"
+readme = "README.md"
+keywords = ["system-monitor", "terminal", "tui", "rust", "metrics"]
 
 [dependencies]
 anyhow = "1"

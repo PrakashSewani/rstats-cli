@@ -1,0 +1,13 @@
+{
+  "name": "rstats-cli-linux-x64",
+  "version": "0.1.0",
+  "description": "Native rstats binary for Linux x64",
+  "os": ["linux"],
+  "cpu": ["x64"],
+  "bin": {
+    "rstats": "bin/rstats"
+  },
+  "files": ["bin/rstats", "LICENSE"],
+  "license": "MIT",
+  "publishConfig": { "access": "public" }
+}

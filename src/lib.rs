@@ -5,5 +5,6 @@ pub mod collector;
 pub mod config;
 pub mod history;
 pub mod model;
+pub mod open_recordings;
 pub mod recording;
 pub mod tui;

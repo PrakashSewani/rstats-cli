@@ -1,3 +1,16 @@
 /target/
+/recordings/
+/node_modules/
+/npm/rstats-cli-darwin-x64/bin/*
+/npm/rstats-cli-darwin-arm64/bin/*
+/npm/rstats-cli-linux-x64/bin/*
+/npm/rstats-cli-linux-arm64/bin/*
+/npm/rstats-cli-win32-x64/bin/*
+/npm-staging/
+/dist/
+/release/
+/.npm/
+*.tgz
+npm-debug.log*
 *.swp
 .DS_Store

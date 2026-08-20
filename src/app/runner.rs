@@ -97,7 +97,14 @@ fn handle_key(state: &mut AppState, key: KeyEvent) -> Command {
     let command = command_for(key);
     match command {
         Command::Quit => {}
-        Command::Screen(screen) => state.screen = screen,
+        Command::Screen(screen) => {
+            state.screen = screen;
+            if screen == Screen::History {
+                if let Err(error) = state.refresh_recordings() {
+                    state.recording_error = Some(error.to_string());
+                }
+            }
+        }
         Command::Pause => state.paused = !state.paused,
         Command::ResetHistory => state.reset_history(),
         Command::Help => state.help_visible = !state.help_visible,
@@ -115,6 +122,13 @@ fn handle_key(state: &mut AppState, key: KeyEvent) -> Command {
                 state.recording_error = Some(error.to_string());
             }
         }
+        Command::Select => {
+            if let Err(error) = state.load_selected_recording() {
+                state.recording_error = Some(error.to_string());
+            }
+        }
+        Command::Up => state.move_recording_selection(-1),
+        Command::Down => state.move_recording_selection(1),
         _ => {}
     }
     command

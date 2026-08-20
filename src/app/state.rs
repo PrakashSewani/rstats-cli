@@ -6,7 +6,7 @@ use crate::{
     config::Config,
     history::History,
     model::{MetricKind, ProcessSort, ProcessView, Snapshot},
-    recording::{Recorder, RecordingSummary},
+    recording::{list_recordings, RecordedSession, Recorder, RecordingSummary},
 };
 
 const MAX_RECORDING_SAMPLES: usize = 86_400;
@@ -26,6 +26,9 @@ pub struct AppState {
     pub recording_error: Option<String>,
     pub recorder: Option<Recorder>,
     pub last_recording: Option<RecordingSummary>,
+    pub saved_recordings: Vec<RecordedSession>,
+    pub selected_recording: usize,
+    pub loaded_recording: Option<RecordedSession>,
 }
 
 impl AppState {
@@ -56,6 +59,9 @@ impl AppState {
             recording_error: None,
             recorder: None,
             last_recording: None,
+            saved_recordings: Vec::new(),
+            selected_recording: 0,
+            loaded_recording: None,
         }
     }
 
@@ -87,6 +93,33 @@ impl AppState {
         self.collector_error = None;
     }
 
+    pub fn refresh_recordings(&mut self) -> anyhow::Result<()> {
+        self.saved_recordings = list_recordings(&self.config.recording_directory)?;
+        if self.saved_recordings.is_empty() {
+            self.selected_recording = 0;
+        } else {
+            self.selected_recording = self.selected_recording.min(self.saved_recordings.len() - 1);
+        }
+        Ok(())
+    }
+
+    pub fn move_recording_selection(&mut self, offset: isize) {
+        if self.saved_recordings.is_empty() {
+            return;
+        }
+        let length = self.saved_recordings.len() as isize;
+        self.selected_recording =
+            (self.selected_recording as isize + offset).rem_euclid(length) as usize;
+    }
+
+    pub fn load_selected_recording(&mut self) -> anyhow::Result<()> {
+        let Some(session) = self.saved_recordings.get(self.selected_recording) else {
+            return Ok(());
+        };
+        self.loaded_recording = Some(RecordedSession::load(&session.path)?);
+        Ok(())
+    }
+
     pub fn toggle_recording(&mut self) -> anyhow::Result<()> {
         if self.recorder.is_some() {
             self.stop_recording()?;
@@ -103,6 +136,7 @@ impl AppState {
         };
         let summary = recorder.finish()?;
         self.last_recording = Some(summary.clone());
+        self.refresh_recordings()?;
         Ok(Some(summary))
     }
 
@@ -114,6 +148,7 @@ impl AppState {
         let recorder = Recorder::start(&self.config.recording_directory)?;
         self.recording_histories.values_mut().for_each(History::clear);
         self.last_recording = None;
+        self.loaded_recording = None;
         self.recorder = Some(recorder);
         Ok(())
     }

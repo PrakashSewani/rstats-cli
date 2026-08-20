@@ -1,0 +1,16 @@
+{
+  "name": "rstats-cli-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Development workspace for the rstats Rust monitor and npm packages",
+  "license": "MIT",
+  "scripts": {
+    "sync-version": "node scripts/sync-version.mjs",
+    "check-version": "node scripts/sync-version.mjs --check",
+    "validate-packages": "node scripts/validate-packages.mjs",
+    "test": "node --test scripts/launcher.test.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "rstats-cli-darwin-arm64",
+  "version": "0.1.0",
+  "description": "Native rstats binary for macOS arm64",
+  "os": ["darwin"],
+  "cpu": ["arm64"],
+  "bin": {
+    "rstats": "bin/rstats"
+  },
+  "files": ["bin/rstats", "LICENSE"],
+  "license": "MIT",
+  "publishConfig": { "access": "public" }
+}

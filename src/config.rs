@@ -152,6 +152,8 @@ mod tests {
             history_seconds: Some(u64::MAX),
             config: None,
             recording_dir: None,
+            monitor: false,
+            open_recordings: false,
             no_color: false,
             log_level: None,
         };

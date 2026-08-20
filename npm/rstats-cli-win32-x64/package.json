@@ -1,0 +1,13 @@
+{
+  "name": "rstats-cli-win32-x64",
+  "version": "0.1.0",
+  "description": "Native rstats binary for Windows x64",
+  "os": ["win32"],
+  "cpu": ["x64"],
+  "bin": {
+    "rstats": "bin/rstats.exe"
+  },
+  "files": ["bin/rstats.exe", "LICENSE"],
+  "license": "MIT",
+  "publishConfig": { "access": "public" }
+}

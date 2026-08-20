@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::{
     fs::{create_dir_all, File, OpenOptions},
     io::{BufWriter, Write},
@@ -90,6 +90,98 @@ pub struct RecordingSummary {
     pub samples: u64,
 }
 
+#[derive(Clone, Debug)]
+pub struct RecordedSession {
+    pub path: PathBuf,
+    pub started_at: Option<SystemTime>,
+    pub stopped_at: Option<SystemTime>,
+    pub samples: u64,
+    pub cpu: Vec<f64>,
+    pub memory: Vec<f64>,
+    pub swap: Vec<f64>,
+    pub load_average: Vec<f64>,
+}
+
+#[derive(Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+enum StoredRecord {
+    Header { started_at_ms: u64 },
+    Sample { snapshot: Box<Snapshot> },
+    Footer { stopped_at_ms: u64, samples: u64 },
+}
+
+impl RecordedSession {
+    pub fn load(path: &Path) -> Result<Self> {
+        let contents = std::fs::read_to_string(path)
+            .with_context(|| format!("failed to read recording file {}", path.display()))?;
+        let mut session = Self {
+            path: path.to_path_buf(),
+            started_at: None,
+            stopped_at: None,
+            samples: 0,
+            cpu: Vec::new(),
+            memory: Vec::new(),
+            swap: Vec::new(),
+            load_average: Vec::new(),
+        };
+        for line in contents.lines() {
+            let Ok(record) = serde_json::from_str::<StoredRecord>(line) else {
+                continue;
+            };
+            match record {
+                StoredRecord::Header { started_at_ms } => {
+                    session.started_at = Some(from_timestamp_ms(started_at_ms));
+                }
+                StoredRecord::Sample { snapshot } => {
+                    session.cpu.push(snapshot.cpu.total_usage);
+                    session.memory.push(snapshot.memory.used_percent);
+                    session.swap.push(snapshot.swap.used_percent);
+                    if let Some(load) = snapshot.load_average {
+                        session.load_average.push(load);
+                    }
+                    session.samples += 1;
+                }
+                StoredRecord::Footer { stopped_at_ms, samples } => {
+                    session.stopped_at = Some(from_timestamp_ms(stopped_at_ms));
+                    if session.samples == 0 {
+                        session.samples = samples;
+                    }
+                }
+            }
+        }
+        Ok(session)
+    }
+
+    pub fn duration_seconds(&self) -> u64 {
+        match (self.started_at, self.stopped_at) {
+            (Some(started), Some(stopped)) => {
+                stopped.duration_since(started).unwrap_or_default().as_secs()
+            }
+            _ => 0,
+        }
+    }
+}
+
+pub fn list_recordings(directory: &Path) -> Result<Vec<RecordedSession>> {
+    if !directory.exists() {
+        return Ok(Vec::new());
+    }
+    let mut sessions = Vec::new();
+    for entry in std::fs::read_dir(directory)
+        .with_context(|| format!("failed to list recording directory {}", directory.display()))?
+    {
+        let path = entry?.path();
+        if path.extension().and_then(|extension| extension.to_str()) != Some("jsonl") {
+            continue;
+        }
+        if let Ok(session) = RecordedSession::load(&path) {
+            sessions.push(session);
+        }
+    }
+    sessions.sort_by(|left, right| right.path.cmp(&left.path));
+    Ok(sessions)
+}
+
 impl RecordingSummary {
     pub fn duration_seconds(&self) -> u64 {
         self.stopped_at.duration_since(self.started_at).unwrap_or_default().as_secs()
@@ -113,6 +205,10 @@ fn unique_path(directory: &Path, started_at: SystemTime) -> PathBuf {
 
 fn timestamp_ms(time: SystemTime) -> u64 {
     time.duration_since(UNIX_EPOCH).unwrap_or_default().as_millis() as u64
+}
+
+fn from_timestamp_ms(milliseconds: u64) -> SystemTime {
+    UNIX_EPOCH + std::time::Duration::from_millis(milliseconds)
 }
 
 #[cfg(test)]

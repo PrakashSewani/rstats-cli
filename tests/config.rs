@@ -13,6 +13,8 @@ fn cli_values_override_file_values() {
         history_seconds: Some(20),
         config: Some(path),
         recording_dir: None,
+        monitor: false,
+        open_recordings: false,
         no_color: false,
         log_level: None,
     };

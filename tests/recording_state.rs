@@ -34,4 +34,7 @@ fn state_records_snapshots_and_keeps_session_history_after_stop() {
     assert_eq!(summary.samples, 1);
     assert!(summary.path.exists());
     assert!(state.recorder.is_none());
+    assert_eq!(state.saved_recordings.len(), 1);
+    state.load_selected_recording().unwrap();
+    assert_eq!(state.loaded_recording.as_ref().unwrap().cpu, vec![42.0]);
 }
