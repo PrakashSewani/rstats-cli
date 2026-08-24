@@ -1,0 +1,3 @@
+- Prefers monitoring visualizations to include clear per-sample CPU and RAM percentage indicators or indices, rather than showing only aggregate charts. Confidence: 0.85
+- Wants storage/disk monitoring indicators to be visible on the main dashboard and adapt dynamically to the number of drives present, supporting anything from a single drive to several drives without a fixed-drive layout. Confidence: 0.95
+- Prefers durable, repository-local project knowledge packs—such as agent instructions, architecture/development docs, and reusable skills—so future work can be understood without repeatedly digging through the source tree. Confidence: 0.95

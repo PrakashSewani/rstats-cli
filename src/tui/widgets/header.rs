@@ -8,7 +8,9 @@ pub fn render_header(frame: &mut Frame, area: Rect, state: &AppState) {
     let hostname = state.snapshot.hostname.as_deref().unwrap_or("unknown host");
     let os = state.snapshot.os.as_deref().unwrap_or("unknown OS");
     let status = if state.paused { "PAUSED" } else { "LIVE" };
-    let recording = if state.recorder.is_some() { " REC" } else { "" };
+    let recording = state.recorder.as_ref().map_or_else(String::new, |recorder| {
+        format!("  REC [{} samples]", recorder.sample_count())
+    });
     let error = state.collector_error.as_deref().unwrap_or("");
     let text = format!(
         "rstats  {status}{recording}  {hostname}  {os}  uptime {}s  {}",

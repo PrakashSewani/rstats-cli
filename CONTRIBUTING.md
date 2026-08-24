@@ -1,5 +1,7 @@
 # Contributing
 
+Read [AGENTS.md](AGENTS.md) before changing source code, tests, packaging, or workflows. Use [Architecture](docs/ARCHITECTURE.md) for system behavior and [Development](docs/DEVELOPMENT.md) for verification, packaging, CI, and releases.
+
 ## Repository layout
 
 - `src/` — Rust monitor, collector, recording, and TUI implementation

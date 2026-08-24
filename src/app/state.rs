@@ -108,8 +108,12 @@ impl AppState {
             return;
         }
         let length = self.saved_recordings.len() as isize;
-        self.selected_recording =
+        let selected_recording =
             (self.selected_recording as isize + offset).rem_euclid(length) as usize;
+        if selected_recording != self.selected_recording {
+            self.loaded_recording = None;
+        }
+        self.selected_recording = selected_recording;
     }
 
     pub fn load_selected_recording(&mut self) -> anyhow::Result<()> {
@@ -142,6 +146,14 @@ impl AppState {
 
     pub fn recording_samples(&self) -> u64 {
         self.recorder.as_ref().map_or(0, Recorder::sample_count)
+    }
+
+    pub fn recording_action(&self) -> &'static str {
+        if self.recorder.is_some() {
+            "s stop recording"
+        } else {
+            "s start recording"
+        }
     }
 
     fn start_recording(&mut self) -> anyhow::Result<()> {

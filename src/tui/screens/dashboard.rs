@@ -8,17 +8,20 @@ use crate::{
     model::MetricKind,
     tui::{
         layout, theme,
-        widgets::{render_header, render_overview},
+        widgets::{render_header, render_overview, render_storage},
     },
 };
 
 pub fn render_dashboard(frame: &mut Frame, state: &AppState) {
-    let chunks = layout::dashboard_chunks(frame.size());
-    render_header(frame, chunks[0], state);
-    render_overview(frame, chunks[1], state);
+    let dashboard = layout::dashboard_chunks(frame.size(), state.snapshot.disks.len());
+    render_header(frame, dashboard.header, state);
+    render_overview(frame, dashboard.overview, state);
+    if let Some(storage) = dashboard.storage {
+        render_storage(frame, storage, &state.snapshot.disks);
+    }
     let body = Block::default().title("CPU / Memory history").borders(Borders::ALL);
-    let body_inner = body.inner(chunks[2]);
-    frame.render_widget(body, chunks[2]);
+    let body_inner = body.inner(dashboard.history);
+    frame.render_widget(body, dashboard.history);
     let spark_chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
@@ -40,12 +43,17 @@ pub fn render_dashboard(frame: &mut Frame, state: &AppState) {
         spark_chunks[1],
     );
 
+    let recording_action = state.recording_action();
     let footer = if state.help_visible {
-        "q quit | 1 dashboard | 2 processes | 3 alerts | 4 history | s record | space pause | R reset | ? close help"
+        format!(
+            "q quit | 1 dashboard | 2 processes | 3 alerts | 4 history | {recording_action} | space pause | R reset | ? close help"
+        )
     } else {
-        "q quit | 1 dashboard | 2 processes | 3 alerts | 4 history | s record | space pause | ? help"
+        format!(
+            "q quit | 1 dashboard | 2 processes | 3 alerts | 4 history | {recording_action} | space pause | ? help"
+        )
     };
-    frame.render_widget(Paragraph::new(footer).style(theme::muted()), chunks[3]);
+    frame.render_widget(Paragraph::new(footer).style(theme::muted()), dashboard.footer);
     if state.help_visible {
         let area = centered_rect(70, 50, frame.size());
         frame.render_widget(Paragraph::new("rstats controls\n\nq / Ctrl-C  Quit\n1 / 2 / 3 / 4 Views\ns           Start/stop recording\nspace       Pause updates\nR           Reset history\nc / m       Sort processes\nr           Reverse sort\n?           Toggle help").block(Block::default().title("Help").borders(Borders::ALL)).wrap(Wrap { trim: true }), area);

@@ -112,6 +112,13 @@ Press `s` to start or stop a session. Each session creates `rstats-<epoch-millis
 
 Open screen `4` to browse saved sessions. Use Up/Down to select a file and Enter to load its CPU and memory charts directly inside the TUI. You do not need to open the JSONL file manually.
 
+## Maintainer and agent documentation
+
+- [Agent guide](AGENTS.md) — first-read project rules and source map
+- [Architecture](docs/ARCHITECTURE.md) — runtime flow, modules, TUI, storage, and recording format
+- [Development](docs/DEVELOPMENT.md) — tests, packaging, CI, and releases
+- [Maintainer skill](.commandcode/skills/rstats-cli-maintainer/SKILL.md) — repository-specific agent workflow
+
 ## Development
 
 Run the Rust application from source:

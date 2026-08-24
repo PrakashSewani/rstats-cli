@@ -10,4 +10,8 @@ fn sysinfo_collector_produces_a_snapshot() {
         snapshot.memory.used_bytes <= snapshot.memory.total_bytes
             || snapshot.memory.total_bytes == 0
     );
+    assert!(snapshot
+        .disks
+        .iter()
+        .all(|disk| disk.used_percent.is_finite() && (0.0..=100.0).contains(&disk.used_percent)));
 }

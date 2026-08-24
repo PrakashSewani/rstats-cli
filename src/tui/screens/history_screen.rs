@@ -42,7 +42,14 @@ pub fn render_history_screen(frame: &mut Frame, state: &AppState) {
     }
     frame.render_stateful_widget(list, columns[0], &mut list_state);
 
-    let session = if state.recorder.is_some() { None } else { state.loaded_recording.as_ref() };
+    let session = if state.recorder.is_some() {
+        None
+    } else {
+        state
+            .loaded_recording
+            .as_ref()
+            .or_else(|| state.saved_recordings.get(state.selected_recording))
+    };
     let status = if let Some(recorder) = state.recorder.as_ref() {
         format!(
             "Recording now\n{}\nSamples: {}",
@@ -50,8 +57,9 @@ pub fn render_history_screen(frame: &mut Frame, state: &AppState) {
             recorder.sample_count()
         )
     } else if let Some(session) = session {
+        let label = if state.loaded_recording.is_some() { "Loaded" } else { "Selected" };
         format!(
-            "Loaded: {}\nSamples: {} | Duration: {}s",
+            "{label}: {}\nSamples: {} | Duration: {}s",
             session.path.display(),
             session.samples,
             session.duration_seconds()
@@ -92,25 +100,40 @@ pub fn render_history_screen(frame: &mut Frame, state: &AppState) {
     );
     let cpu = spark_values(&cpu);
     let memory = spark_values(&memory);
-    frame.render_widget(
-        Sparkline::default()
-            .block(Block::default().title("CPU %"))
-            .data(&cpu)
-            .style(theme::gauge()),
-        spark_chunks[0],
-    );
-    frame.render_widget(
-        Sparkline::default()
-            .block(Block::default().title("Memory %"))
-            .data(&memory)
-            .style(theme::warning()),
-        spark_chunks[1],
-    );
+    if cpu.is_empty() && memory.is_empty() {
+        let message = if session.is_some() {
+            "No samples recorded"
+        } else if state.recorder.is_some() {
+            "Waiting for samples..."
+        } else {
+            "No recording selected"
+        };
+        frame.render_widget(
+            Paragraph::new(message).alignment(Alignment::Center).style(theme::muted()),
+            inner,
+        );
+    } else {
+        frame.render_widget(
+            Sparkline::default()
+                .block(Block::default().title("CPU %"))
+                .data(&cpu)
+                .style(theme::gauge()),
+            spark_chunks[0],
+        );
+        frame.render_widget(
+            Sparkline::default()
+                .block(Block::default().title("Memory %"))
+                .data(&memory)
+                .style(theme::warning()),
+            spark_chunks[1],
+        );
+    }
 
-    let footer = state
-        .recording_error
-        .as_deref()
-        .map_or("Up/Down select | Enter load | s start/stop | 1 dashboard | q quit", |error| error);
+    let footer = if let Some(error) = state.recording_error.as_deref() {
+        error.to_owned()
+    } else {
+        format!("Up/Down select | Enter load | {} | 1 dashboard | q quit", state.recording_action())
+    };
     frame.render_widget(Paragraph::new(footer).style(theme::muted()), chunks[2]);
 }
 
