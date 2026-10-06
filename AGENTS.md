@@ -34,6 +34,7 @@ Read this file before changing source code, tests, packaging, or workflows. It i
 - `src/history/` — bounded `History` ring buffer used by `AppState`.
 - `src/alerts/` — sustained-threshold alert evaluator.
 - `src/recording.rs` — flushed JSONL recorder, loader, summaries, and catalog discovery.
+- `src/series.rs` — derived series helpers for network rates and worst-disk usage.
 - `src/tui/layout.rs` — dashboard layout, including conditional dynamic storage space.
 - `src/tui/screens/` — Dashboard, Processes, Alerts, and recording History screens.
 - `src/tui/widgets/` — reusable header, overview, process, alert, sparkline, and Storage widgets.

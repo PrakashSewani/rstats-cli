@@ -4,7 +4,7 @@ use tempfile::tempdir;
 use rstats::{
     app::AppState,
     config::Config,
-    model::{CpuSnapshot, Snapshot},
+    model::{CpuSnapshot, DiskSnapshot, MetricKind, NetworkSnapshot, Snapshot},
     recording::Recorder,
 };
 
@@ -61,4 +61,35 @@ fn changing_recording_selection_clears_loaded_session() {
     assert!(state.loaded_recording.is_some());
     state.move_recording_selection(1);
     assert!(state.loaded_recording.is_none());
+}
+
+#[test]
+fn state_tracks_network_and_disk_histories() {
+    let directory = tempdir().unwrap();
+    let mut state = AppState::new(config(directory.path().to_path_buf()));
+    let sample = |seconds: u64, received: u64, transmitted: u64, used: f64| Snapshot {
+        timestamp: SystemTime::UNIX_EPOCH + Duration::from_secs(seconds),
+        networks: vec![NetworkSnapshot {
+            name: "en0".to_owned(),
+            received_bytes: received,
+            transmitted_bytes: transmitted,
+        }],
+        disks: vec![DiskSnapshot {
+            name: "disk".to_owned(),
+            mount_point: "/".to_owned(),
+            total_bytes: 100,
+            available_bytes: 40,
+            used_percent: used,
+        }],
+        ..Snapshot::default()
+    };
+    state.apply_snapshot(sample(10, 1_000, 2_000, 60.0));
+    state.apply_snapshot(sample(12, 3_000, 4_000, 80.0));
+
+    let receive = state.histories.get(&MetricKind::NetworkReceive).unwrap();
+    assert_eq!(receive.as_vec(), vec![0.0, 1_000.0]);
+    let transmit = state.histories.get(&MetricKind::NetworkTransmit).unwrap();
+    assert_eq!(transmit.as_vec(), vec![0.0, 1_000.0]);
+    let disk = state.histories.get(&MetricKind::Disk).unwrap();
+    assert_eq!(disk.as_vec(), vec![60.0, 80.0]);
 }

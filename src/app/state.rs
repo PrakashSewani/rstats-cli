@@ -1,12 +1,14 @@
 use std::collections::HashMap;
+use std::time::SystemTime;
 
 use super::command::Screen;
 use crate::{
     alerts::{AlertEvaluator, AlertEvent},
     config::Config,
     history::History,
-    model::{MetricKind, ProcessSort, ProcessView, Snapshot},
+    model::{MetricKind, NetworkSnapshot, ProcessSort, ProcessView, Snapshot},
     recording::{list_recordings, RecordedSession, Recorder, RecordingSummary},
+    series::{max_disk_used_percent, net_rates},
 };
 
 const MAX_RECORDING_SAMPLES: usize = 86_400;
@@ -17,6 +19,7 @@ pub struct AppState {
     pub snapshot: Snapshot,
     pub histories: HashMap<MetricKind, History>,
     pub recording_histories: HashMap<MetricKind, History>,
+    pub net_previous: Option<(SystemTime, Vec<NetworkSnapshot>)>,
     pub alerts: Vec<AlertEvent>,
     pub alert_evaluator: AlertEvaluator,
     pub process_view: ProcessView,
@@ -35,8 +38,15 @@ impl AppState {
     pub fn new(config: Config) -> Self {
         let mut histories = HashMap::new();
         let mut recording_histories = HashMap::new();
-        for kind in [MetricKind::Cpu, MetricKind::Memory, MetricKind::Swap, MetricKind::LoadAverage]
-        {
+        for kind in [
+            MetricKind::Cpu,
+            MetricKind::Memory,
+            MetricKind::Swap,
+            MetricKind::LoadAverage,
+            MetricKind::NetworkReceive,
+            MetricKind::NetworkTransmit,
+            MetricKind::Disk,
+        ] {
             histories.insert(kind, History::new(config.history_capacity));
             recording_histories.insert(kind, History::new(MAX_RECORDING_SAMPLES));
         }
@@ -46,6 +56,7 @@ impl AppState {
             snapshot: Snapshot::default(),
             histories,
             recording_histories,
+            net_previous: None,
             alerts: Vec::new(),
             alert_evaluator: AlertEvaluator::default(),
             process_view: ProcessView {
@@ -69,6 +80,13 @@ impl AppState {
         if self.paused {
             return;
         }
+        let rates = self
+            .net_previous
+            .as_ref()
+            .and_then(|(time, interfaces)| net_rates(*time, interfaces, &snapshot));
+        let net_receive = rates.map_or(0.0, |rates| rates.received_per_sec);
+        let net_transmit = rates.map_or(0.0, |rates| rates.transmitted_per_sec);
+        let disk = max_disk_used_percent(&snapshot);
         self.snapshot = snapshot;
         self.history_push(MetricKind::Cpu, self.snapshot.cpu.total_usage);
         self.history_push(MetricKind::Memory, self.snapshot.memory.used_percent);
@@ -76,6 +94,12 @@ impl AppState {
         if let Some(load) = self.snapshot.load_average {
             self.history_push(MetricKind::LoadAverage, load);
         }
+        self.history_push(MetricKind::NetworkReceive, net_receive);
+        self.history_push(MetricKind::NetworkTransmit, net_transmit);
+        if let Some(disk) = disk {
+            self.history_push(MetricKind::Disk, disk);
+        }
+        self.net_previous = Some((self.snapshot.timestamp, self.snapshot.networks.clone()));
         if let Some(recorder) = self.recorder.as_mut() {
             if let Err(error) = recorder.record(&self.snapshot) {
                 self.recording_error = Some(error.to_string());
@@ -86,6 +110,11 @@ impl AppState {
                 self.recording_history_push(MetricKind::Swap, self.snapshot.swap.used_percent);
                 if let Some(load) = self.snapshot.load_average {
                     self.recording_history_push(MetricKind::LoadAverage, load);
+                }
+                self.recording_history_push(MetricKind::NetworkReceive, net_receive);
+                self.recording_history_push(MetricKind::NetworkTransmit, net_transmit);
+                if let Some(disk) = disk {
+                    self.recording_history_push(MetricKind::Disk, disk);
                 }
             }
         }

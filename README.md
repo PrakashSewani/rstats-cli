@@ -90,10 +90,10 @@ The CLI modes are mutually exclusive: `--monitor --open-recordings` is rejected.
 - Load average where the platform provides it
 - Dark, light, and mono color themes with live cycling
 - Sortable and filterable process table
-- Bounded CPU, memory, swap, and load history with sparklines
+- Bounded CPU, memory, swap, load, network, and disk history with sparklines
 - Sustained threshold alerts with severity, cooldown, and recovery thresholds
 - Start/stop recording sessions to portable JSONL files
-- Built-in recording catalog and CPU/memory visualizer
+- Built-in recording catalog with CPU, memory, network, and disk charts
 - Interrupted recordings remain loadable when valid samples were flushed
 
 ## Configuration
@@ -133,7 +133,7 @@ Supported alert metrics are `cpu.total`, `memory.used_percent`, `swap.used_perce
 
 Press `s` to start or stop a session. Each session creates `rstats-<epoch-milliseconds>.jsonl` with one JSON object per line: a header, each collected sample, and a footer containing the stop time and sample count. The file is flushed after every sample.
 
-Open screen `4` to browse saved sessions. Use Up/Down to select a file and Enter to load its CPU and memory charts directly inside the TUI. You do not need to open the JSONL file manually.
+Open screen `4` to browse saved sessions. Use Up/Down to select a file and Enter to load its CPU, memory, network, and disk charts directly inside the TUI. You do not need to open the JSONL file manually.
 
 ## Maintainer and agent documentation
 

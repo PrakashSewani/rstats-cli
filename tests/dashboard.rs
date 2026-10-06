@@ -92,3 +92,12 @@ fn dashboard_help_overlay_lists_theme_cycle() {
     let output = terminal.backend().to_string();
     assert!(output.contains("Cycle color theme"));
 }
+
+#[test]
+fn dashboard_renders_all_history_tiles() {
+    let output = rendered_snapshot(120, 30, Vec::new());
+    assert!(output.contains("CPU %"));
+    assert!(output.contains("Memory %"));
+    assert!(output.contains("Net I/O /s"));
+    assert!(output.contains("Disk %"));
+}

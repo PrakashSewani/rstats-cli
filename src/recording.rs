@@ -7,7 +7,10 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use crate::model::Snapshot;
+use crate::{
+    model::{NetworkSnapshot, Snapshot},
+    series::{max_disk_used_percent, net_rates},
+};
 
 pub struct Recorder {
     path: PathBuf,
@@ -100,6 +103,9 @@ pub struct RecordedSession {
     pub memory: Vec<f64>,
     pub swap: Vec<f64>,
     pub load_average: Vec<f64>,
+    pub net_received: Vec<f64>,
+    pub net_transmitted: Vec<f64>,
+    pub disk_max: Vec<f64>,
 }
 
 #[derive(Deserialize)]
@@ -123,7 +129,11 @@ impl RecordedSession {
             memory: Vec::new(),
             swap: Vec::new(),
             load_average: Vec::new(),
+            net_received: Vec::new(),
+            net_transmitted: Vec::new(),
+            disk_max: Vec::new(),
         };
+        let mut previous_net: Option<(SystemTime, Vec<NetworkSnapshot>)> = None;
         for line in contents.lines() {
             let Ok(record) = serde_json::from_str::<StoredRecord>(line) else {
                 continue;
@@ -139,6 +149,15 @@ impl RecordedSession {
                     if let Some(load) = snapshot.load_average {
                         session.load_average.push(load);
                     }
+                    let rates = previous_net
+                        .as_ref()
+                        .and_then(|(time, interfaces)| net_rates(*time, interfaces, &snapshot));
+                    session.net_received.push(rates.map_or(0.0, |rates| rates.received_per_sec));
+                    session
+                        .net_transmitted
+                        .push(rates.map_or(0.0, |rates| rates.transmitted_per_sec));
+                    session.disk_max.push(max_disk_used_percent(&snapshot).unwrap_or(0.0));
+                    previous_net = Some((snapshot.timestamp, snapshot.networks.clone()));
                     session.samples += 1;
                 }
                 StoredRecord::Footer { stopped_at_ms, samples } => {

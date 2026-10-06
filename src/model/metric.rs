@@ -8,6 +8,7 @@ pub enum MetricKind {
     LoadAverage,
     NetworkReceive,
     NetworkTransmit,
+    Disk,
 }
 
 impl fmt::Display for MetricKind {
@@ -19,6 +20,7 @@ impl fmt::Display for MetricKind {
             Self::LoadAverage => "load.average",
             Self::NetworkReceive => "network.receive_bytes",
             Self::NetworkTransmit => "network.transmit_bytes",
+            Self::Disk => "disk.max_used_percent",
         };
         formatter.write_str(value)
     }

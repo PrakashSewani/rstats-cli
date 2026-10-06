@@ -16,6 +16,7 @@ src/app/                    event loop, commands, and mutable state
 src/history/                bounded live history ring buffer
 src/alerts/                 sustained alert evaluation
 src/recording.rs             JSONL recording and catalog loading
+src/series.rs                derived series helpers (network rates, disk usage)
 src/tui/                    terminal lifecycle, layout, screens, widgets
 tests/                      Rust integration coverage
 npm/                        launcher and native package manifests
@@ -65,7 +66,7 @@ The default interval is 1,000 ms, with a 100 ms minimum. Requested live history 
 
 `Snapshot.disks` must remain a dynamic vector. It safely represents zero, one, or many OS-reported filesystems. `DiskSnapshot` includes name, mount point, total bytes, available bytes, and used percentage.
 
-The collector and recording format already retain full disk snapshots. Historical disk charts are not currently extracted into `RecordedSession`; disk indicators currently target the live Dashboard.
+The collector and recording format already retain full disk snapshots. `RecordedSession` derives a worst-disk usage series (`disk_max`) and per-interval network receive/transmit rates from recorded samples, so disk and network charts work both live and from recordings.
 
 ## Collector and runtime data flow
 
@@ -99,7 +100,8 @@ Collection normalization includes:
 `src/app/state.rs` owns mutable runtime state:
 
 - current `Snapshot`;
-- live bounded `History` values for CPU, memory, swap, and load average;
+- live bounded `History` values for CPU, memory, swap, load average, network receive/transmit rates, and worst-disk usage;
+- the previous network sample (`net_previous`) used to compute the next interval's rates;
 - current recording histories, bounded to 86,400 samples;
 - alert events and evaluator state;
 - screen, pause, help, and error state;
@@ -143,10 +145,10 @@ Current controls:
 
 `src/tui/terminal.rs` enters raw mode, alternate-screen mode, and mouse capture, then restores them on normal return. The `run_loop` function in `src/app/runner.rs` dispatches to one of four screens:
 
-- `src/tui/screens/dashboard.rs` — live gauges, dynamic Storage panel, CPU/memory sparklines, footer, help overlay;
+- `src/tui/screens/dashboard.rs` — live gauges, dynamic Storage panel, a 2x2 CPU/memory/network/disk sparkline grid, footer, help overlay;
 - `src/tui/screens/process_screen.rs` — process table and current filter label;
 - `src/tui/screens/alerts_screen.rs` — active/pending alert table;
-- `src/tui/screens/history_screen.rs` — saved recording catalog, status, and CPU/memory charts.
+- `src/tui/screens/history_screen.rs` — saved recording catalog, status, and CPU/memory/network/disk charts.
 
 Reusable widgets are under `src/tui/widgets/`. Styles are centralized in `src/tui/theme.rs` as title, muted, gauge, warning, and critical styles resolved against the active palette. The palette is selected by `theme` in the config file or `--theme` on the command line and can be cycled at runtime with `t`; built-in palettes are dark, light, and mono.
 
@@ -168,7 +170,7 @@ The widget handles an empty list with `No disks detected`, though the Dashboard 
 
 ### History visualizer
 
-`src/tui/screens/history_screen.rs` shows the active recording histories while recording. When idle, it prefers an explicitly loaded session and otherwise previews the selected catalog entry. Empty recordings show a clear no-samples state. `RecordedSession` currently retains CPU, memory, swap, and load-average series, not per-sample disk series or raw timestamps in its chart fields.
+`src/tui/screens/history_screen.rs` shows the active recording histories while recording. When idle, it prefers an explicitly loaded session and otherwise previews the selected catalog entry. Empty recordings show a clear no-samples state. Charts render as a 2x2 grid: CPU, memory, network throughput (receive plus transmit rates), and worst-disk usage. `RecordedSession` retains CPU, memory, swap, and load-average series plus network receive/transmit rates and worst-disk usage derived at load time; raw timestamps are not retained as chart fields.
 
 ### History storage
 
@@ -186,7 +188,7 @@ The widget handles an empty list with `No disks detected`, though the Dashboard 
 
 Actual samples contain the complete `Snapshot`, including processes, disks, and networks. `Recorder::start` creates a unique `rstats-<epoch-milliseconds>.jsonl` path, writes and flushes the header, and initializes the count. `Recorder::record` writes and flushes every sample. `Recorder::finish` writes and flushes the footer.
 
-`RecordedSession::load` reads valid lines and extracts session metadata plus CPU, memory, swap, and load-average vectors. If valid sample records exist, their parsed count is authoritative; the footer count is only used when no valid samples were parsed. Invalid JSONL lines are skipped so interrupted files with valid lines remain loadable. `list_recordings` discovers `.jsonl` files and silently skips files that cannot be loaded.
+`RecordedSession::load` reads valid lines and extracts session metadata plus CPU, memory, swap, and load-average vectors, network receive/transmit rates, and worst-disk usage. If valid sample records exist, their parsed count is authoritative; the footer count is only used when no valid samples were parsed. Invalid JSONL lines are skipped so interrupted files with valid lines remain loadable. `list_recordings` discovers `.jsonl` files and silently skips files that cannot be loaded.
 
 Do not remove the header/sample/footer structure, per-sample flush behavior, or parsed-sample-count precedence without updating compatibility tests and documentation.
 
@@ -213,7 +215,6 @@ Native package binaries are release artifacts. They are staged by `scripts/stage
 - The default recording path is relative to the process working directory, so use `--recording-dir` for deterministic automation.
 - `Config.no_color` and `Config.bell` are present but currently have no apparent runtime effect.
 - `/` maps to `Command::Filter`, but `handle_key` does not provide an input editor path.
-- Network counters and network metric identifiers exist, but network histories/charts are not wired into `AppState` or the TUI.
 - Swap and load-average recording vectors are loaded but not visualized on the History screen.
 - Full snapshots make recordings potentially large, and `RecordedSession::load` reads the full file into memory.
 - Live histories are bounded, but loaded chart vectors are not explicitly bounded.

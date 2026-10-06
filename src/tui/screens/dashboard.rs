@@ -8,7 +8,7 @@ use crate::{
     model::MetricKind,
     tui::{
         layout, theme,
-        widgets::{render_header, render_overview, render_storage},
+        widgets::{percent_values, rate_values, render_header, render_overview, render_storage},
     },
 };
 
@@ -19,28 +19,55 @@ pub fn render_dashboard(frame: &mut Frame, state: &AppState) {
     if let Some(storage) = dashboard.storage {
         render_storage(frame, storage, &state.snapshot.disks);
     }
-    let body = Block::default().title("CPU / Memory history").borders(Borders::ALL);
+    let body = Block::default().title("History").borders(Borders::ALL);
     let body_inner = body.inner(dashboard.history);
     frame.render_widget(body, dashboard.history);
-    let spark_chunks = Layout::default()
+    let row_chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
         .split(body_inner);
-    let cpu = spark_values(state.histories.get(&MetricKind::Cpu));
-    let memory = spark_values(state.histories.get(&MetricKind::Memory));
+    let top = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(row_chunks[0]);
+    let bottom = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(row_chunks[1]);
+    let cpu = percent_values(&history_values(state, MetricKind::Cpu));
+    let memory = percent_values(&history_values(state, MetricKind::Memory));
+    let net = rate_values(
+        &history_values(state, MetricKind::NetworkReceive),
+        &history_values(state, MetricKind::NetworkTransmit),
+    );
+    let disk = percent_values(&history_values(state, MetricKind::Disk));
     frame.render_widget(
         Sparkline::default()
             .block(Block::default().title("CPU %"))
             .data(&cpu)
             .style(theme::gauge()),
-        spark_chunks[0],
+        top[0],
     );
     frame.render_widget(
         Sparkline::default()
             .block(Block::default().title("Memory %"))
             .data(&memory)
             .style(theme::warning()),
-        spark_chunks[1],
+        top[1],
+    );
+    frame.render_widget(
+        Sparkline::default()
+            .block(Block::default().title("Net I/O /s"))
+            .data(&net)
+            .style(theme::title()),
+        bottom[0],
+    );
+    frame.render_widget(
+        Sparkline::default()
+            .block(Block::default().title("Disk %"))
+            .data(&disk)
+            .style(theme::critical()),
+        bottom[1],
     );
 
     let recording_action = state.recording_action();
@@ -60,9 +87,11 @@ pub fn render_dashboard(frame: &mut Frame, state: &AppState) {
     }
 }
 
-fn spark_values(history: Option<&crate::history::History>) -> Vec<u64> {
-    history
-        .map(|history| history.values().map(|value| value.clamp(0.0, 100.0) as u64).collect())
+fn history_values(state: &AppState, kind: MetricKind) -> Vec<f64> {
+    state
+        .histories
+        .get(&kind)
+        .map(|history| history.values().copied().collect())
         .unwrap_or_default()
 }
 

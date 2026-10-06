@@ -6,7 +6,10 @@ use ratatui::{
 use crate::{
     app::AppState,
     model::MetricKind,
-    tui::{theme, widgets::render_header},
+    tui::{
+        theme,
+        widgets::{percent_values, rate_values, render_header},
+    },
 };
 
 pub fn render_history_screen(frame: &mut Frame, state: &AppState) {
@@ -88,19 +91,36 @@ pub fn render_history_screen(frame: &mut Frame, state: &AppState) {
     let chart = Block::default().title("Recorded history").borders(Borders::ALL);
     let inner = chart.inner(right[1]);
     frame.render_widget(chart, right[1]);
-    let spark_chunks = Layout::default()
+    let row_chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
         .split(inner);
-    let cpu = session
-        .map_or_else(|| current_values(state, MetricKind::Cpu), |session| session.cpu.clone());
-    let memory = session.map_or_else(
-        || current_values(state, MetricKind::Memory),
-        |session| session.memory.clone(),
-    );
-    let cpu = spark_values(&cpu);
-    let memory = spark_values(&memory);
-    if cpu.is_empty() && memory.is_empty() {
+    let top = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(row_chunks[0]);
+    let bottom = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(row_chunks[1]);
+    let (cpu, memory, net, disk) = match session {
+        Some(session) => (
+            percent_values(&session.cpu),
+            percent_values(&session.memory),
+            rate_values(&session.net_received, &session.net_transmitted),
+            percent_values(&session.disk_max),
+        ),
+        None => (
+            percent_values(&current_values(state, MetricKind::Cpu)),
+            percent_values(&current_values(state, MetricKind::Memory)),
+            rate_values(
+                &current_values(state, MetricKind::NetworkReceive),
+                &current_values(state, MetricKind::NetworkTransmit),
+            ),
+            percent_values(&current_values(state, MetricKind::Disk)),
+        ),
+    };
+    if cpu.is_empty() && memory.is_empty() && net.is_empty() && disk.is_empty() {
         let message = if session.is_some() {
             "No samples recorded"
         } else if state.recorder.is_some() {
@@ -118,14 +138,28 @@ pub fn render_history_screen(frame: &mut Frame, state: &AppState) {
                 .block(Block::default().title("CPU %"))
                 .data(&cpu)
                 .style(theme::gauge()),
-            spark_chunks[0],
+            top[0],
         );
         frame.render_widget(
             Sparkline::default()
                 .block(Block::default().title("Memory %"))
                 .data(&memory)
                 .style(theme::warning()),
-            spark_chunks[1],
+            top[1],
+        );
+        frame.render_widget(
+            Sparkline::default()
+                .block(Block::default().title("Net I/O /s"))
+                .data(&net)
+                .style(theme::title()),
+            bottom[0],
+        );
+        frame.render_widget(
+            Sparkline::default()
+                .block(Block::default().title("Disk %"))
+                .data(&disk)
+                .style(theme::critical()),
+            bottom[1],
         );
     }
 
@@ -143,8 +177,4 @@ fn current_values(state: &AppState, metric: MetricKind) -> Vec<f64> {
         .get(&metric)
         .map(|history| history.values().copied().collect())
         .unwrap_or_default()
-}
-
-fn spark_values(values: &[f64]) -> Vec<u64> {
-    values.iter().map(|value| value.clamp(0.0, 100.0) as u64).collect()
 }

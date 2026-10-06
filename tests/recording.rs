@@ -2,7 +2,7 @@ use std::fs;
 use tempfile::tempdir;
 
 use rstats::{
-    model::{CpuSnapshot, DiskSnapshot, MemorySnapshot, Snapshot},
+    model::{CpuSnapshot, DiskSnapshot, MemorySnapshot, NetworkSnapshot, Snapshot},
     recording::{list_recordings, RecordedSession, Recorder},
 };
 
@@ -61,4 +61,38 @@ fn catalog_preserves_disk_data_from_recorded_samples() {
     let sample: serde_json::Value = serde_json::from_str(contents.lines().nth(1).unwrap()).unwrap();
     assert_eq!(sample["snapshot"]["disks"].as_array().unwrap().len(), 6);
     assert_eq!(sample["snapshot"]["disks"][0]["mount_point"], "/mnt/0");
+}
+
+#[test]
+fn catalog_extracts_network_rates_and_disk_series() {
+    let directory = tempdir().unwrap();
+    let mut recorder = Recorder::start(directory.path()).unwrap();
+    let sample = |seconds: u64, received: u64, transmitted: u64, used: f64| Snapshot {
+        timestamp: std::time::UNIX_EPOCH + std::time::Duration::from_secs(seconds),
+        networks: vec![NetworkSnapshot {
+            name: "en0".to_owned(),
+            received_bytes: received,
+            transmitted_bytes: transmitted,
+        }],
+        disks: vec![DiskSnapshot {
+            name: "disk".to_owned(),
+            mount_point: "/".to_owned(),
+            total_bytes: 100,
+            available_bytes: 40,
+            used_percent: used,
+        }],
+        ..Snapshot::default()
+    };
+    recorder.record(&sample(10, 1_000, 2_000, 60.0)).unwrap();
+    recorder.record(&sample(12, 5_000, 4_000, 80.0)).unwrap();
+    let summary = recorder.finish().unwrap();
+
+    let loaded = RecordedSession::load(&summary.path).unwrap();
+    assert_eq!(loaded.net_received, vec![0.0, 2_000.0]);
+    assert_eq!(loaded.net_transmitted, vec![0.0, 1_000.0]);
+    assert_eq!(loaded.disk_max, vec![60.0, 80.0]);
+
+    let listed = list_recordings(directory.path()).unwrap();
+    assert_eq!(listed.len(), 1);
+    assert_eq!(listed[0].net_received, loaded.net_received);
 }
