@@ -1,6 +1,11 @@
 # rstats
 
+[![CI](https://github.com/PrakashSewani/rstats-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/PrakashSewani/rstats-cli/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 `rstats` is a cross-platform Rust terminal dashboard for live system resources, processes, alerts, and recording history. It supports macOS, Linux, and Windows through a native executable and is distributed for end users through the `rstats-cli` npm package.
+
+![rstats dashboard with CPU, memory, storage, and history charts](docs/screenshots/dashboard-dark.png)
 
 ## Install with npm
 
@@ -108,6 +113,20 @@ The CLI modes are mutually exclusive: `--monitor --open-recordings` is rejected.
 - Built-in recording catalog with CPU, memory, network, and disk charts
 - Interrupted recordings remain loadable when valid samples were flushed
 
+## Screenshots
+
+Light theme:
+
+![Dashboard with the light color theme](docs/screenshots/dashboard-light.png)
+
+Recording history — browse saved sessions and load CPU, memory, network, and disk charts:
+
+![Recording history screen with a loaded session](docs/screenshots/history-dark.png)
+
+Processes sorted by CPU, with sortable columns:
+
+![Processes screen with a sortable process table](docs/screenshots/processes-dark.png)
+
 ## Configuration
 
 CLI arguments override values from the TOML file:
@@ -146,6 +165,10 @@ Supported alert metrics are `cpu.total`, `memory.used_percent`, `swap.used_perce
 Press `s` to start or stop a session. Each session creates `rstats-<epoch-milliseconds>.jsonl` with one JSON object per line: a header, each collected sample, and a footer containing the stop time and sample count. The file is flushed after every sample.
 
 Open screen `4` to browse saved sessions. Use Up/Down to select a file and Enter to load its CPU, memory, network, and disk charts directly inside the TUI. You do not need to open the JSONL file manually.
+
+## Contributing
+
+Bug reports and pull requests are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md) for contributor checks and the release workflow.
 
 ## Maintainer and agent documentation
 
