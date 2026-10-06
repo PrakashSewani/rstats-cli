@@ -1,4 +1,4 @@
-use crate::{app::AppState, tui::theme};
+use crate::{app::AppState, format::format_bytes, tui::theme};
 use ratatui::{
     prelude::*,
     widgets::{Block, Borders, Cell, Row, Table, TableState},
@@ -34,15 +34,4 @@ pub fn render_processes(frame: &mut Frame, area: Rect, state: &AppState) {
     .column_spacing(1)
     .highlight_style(Style::default().add_modifier(Modifier::REVERSED));
     frame.render_stateful_widget(table, area, &mut TableState::default());
-}
-
-fn format_bytes(bytes: u64) -> String {
-    const UNITS: [&str; 4] = ["B", "KiB", "MiB", "GiB"];
-    let mut value = bytes as f64;
-    let mut unit = 0;
-    while value >= 1024.0 && unit < UNITS.len() - 1 {
-        value /= 1024.0;
-        unit += 1;
-    }
-    format!("{value:.1} {}", UNITS[unit])
 }

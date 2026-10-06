@@ -1,4 +1,4 @@
-use crate::{model::DiskSnapshot, tui::theme};
+use crate::{format::format_bytes, model::DiskSnapshot, tui::theme};
 use ratatui::{
     prelude::*,
     widgets::{Block, Borders, Paragraph},
@@ -130,17 +130,6 @@ fn disk_style(percent: f64) -> Style {
     } else {
         theme::gauge()
     }
-}
-
-fn format_bytes(bytes: u64) -> String {
-    const UNITS: [&str; 4] = ["B", "KiB", "MiB", "GiB"];
-    let mut value = bytes as f64;
-    let mut unit = 0;
-    while value >= 1024.0 && unit < UNITS.len() - 1 {
-        value /= 1024.0;
-        unit += 1;
-    }
-    format!("{value:.1} {}", UNITS[unit])
 }
 
 #[cfg(test)]

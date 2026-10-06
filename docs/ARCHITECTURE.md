@@ -8,6 +8,8 @@
 src/main.rs                 startup and CLI dispatch
 src/cli.rs                  Clap arguments
 src/config.rs               TOML + CLI configuration
+src/format.rs               shared byte, rate, and uptime formatting
+src/headless.rs             --once and --watch headless output
 src/model/                  serializable domain types
 src/collector/              system metric collection
 src/app/                    event loop, commands, and mutable state
@@ -31,9 +33,12 @@ scripts/                    version, package, and release helpers
 2. Initialize tracing.
 3. Build `Config` through `Config::from_cli` in `src/config.rs`.
 4. If `--open-recordings` is set, create/open the configured directory through `src/open_recordings.rs`.
-5. Otherwise call `App::run(config)` in `src/app/runner.rs`.
+5. If `--once` or `--watch` is set, emit headless output through `src/headless.rs`.
+6. Otherwise call `App::run(config)` in `src/app/runner.rs`.
 
-Plain `rstats` and `rstats --monitor` both start the interactive monitor. `--monitor` and `--open-recordings` conflict.
+Plain `rstats` and `rstats --monitor` both start the interactive monitor. `--monitor` and `--open-recordings` conflict. `--once` and `--watch` are headless output modes: they conflict with both TUI modes and with each other, and `--json` requires one of them.
+
+`--once` collects a single snapshot after a warm-up pause and prints it (human-readable summary, or pretty JSON with `--json`). `--watch` repeats collection on the configured interval and writes one plain-text line per sample (compact JSON Lines with `--json`), flushing every line; it exits cleanly on a closed stdout pipe. Sample clocks in watch lines are UTC.
 
 Configuration precedence is CLI value, TOML value, then built-in default. The recording directory resolves as:
 
@@ -55,7 +60,7 @@ The default interval is 1,000 ms, with a 100 ms minimum. Requested live history 
 - `SwapSnapshot`
 - optional load average
 - `Vec<DiskSnapshot>`
-- network interface counters
+- cumulative network interface byte counters (`received_bytes`/`transmitted_bytes` are totals since interface creation, not per-refresh deltas)
 - process snapshots
 
 `Snapshot.disks` must remain a dynamic vector. It safely represents zero, one, or many OS-reported filesystems. `DiskSnapshot` includes name, mount point, total bytes, available bytes, and used percentage.

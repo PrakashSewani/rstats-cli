@@ -76,8 +76,10 @@ impl Collector for SysinfoCollector {
             .iter()
             .map(|(name, network)| NetworkSnapshot {
                 name: name.clone(),
-                received_bytes: network.received(),
-                transmitted_bytes: network.transmitted(),
+                // received()/transmitted() are per-refresh deltas; store cumulative
+                // totals so downstream rate math survives any sampling cadence.
+                received_bytes: network.total_received(),
+                transmitted_bytes: network.total_transmitted(),
             })
             .collect();
         let processes = self

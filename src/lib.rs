@@ -3,6 +3,8 @@ pub mod app;
 pub mod cli;
 pub mod collector;
 pub mod config;
+pub mod format;
+pub mod headless;
 pub mod history;
 pub mod model;
 pub mod open_recordings;

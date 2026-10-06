@@ -15,6 +15,9 @@ fn cli_values_override_file_values() {
         recording_dir: None,
         monitor: false,
         open_recordings: false,
+        once: false,
+        watch: false,
+        json: false,
         no_color: false,
         log_level: None,
     };

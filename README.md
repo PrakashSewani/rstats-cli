@@ -40,6 +40,24 @@ rstats --open-recordings --recording-dir ./my-recordings
 
 `--open-recordings` creates and opens the configured recordings directory in the platform file manager. macOS uses `open`, Windows uses `explorer`, and Linux uses `xdg-open`; Linux users need `xdg-open` installed.
 
+## Headless modes
+
+`rstats --once` collects a single snapshot, prints a summary, and exits. `rstats --once --json` prints the full snapshot as JSON instead — handy for scripts and dashboards:
+
+```sh
+rstats --once --json | jq .cpu.total_usage
+```
+
+`rstats --watch` streams one plain-text line per interval until interrupted, flushing every line so it composes with pipes; timestamps are UTC:
+
+```text
+14:32:05  cpu 12.3%  mem 61.2%  swap 0.0%  load 2.14  net ↓1.2 MiB/s ↑300.0 KiB/s  disk 62.1%
+```
+
+`rstats --watch --json` streams one JSON object per line (JSON Lines) instead. Network rates are computed from cumulative interface counters; the first line shows `-` until a previous sample exists.
+
+Headless modes conflict with `--monitor` and `--open-recordings`; `--json` requires `--once` or `--watch`.
+
 The recording directory resolves in this order:
 
 1. `--recording-dir DIRECTORY`
@@ -67,7 +85,7 @@ The CLI modes are mutually exclusive: `--monitor --open-recordings` is rejected.
 
 - CPU usage with per-core data
 - Memory and swap utilization
-- Disk usage and network counters
+- Disk usage and cumulative network byte counters
 - Load average where the platform provides it
 - Sortable and filterable process table
 - Bounded CPU, memory, swap, and load history with sparklines
