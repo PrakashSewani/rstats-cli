@@ -23,6 +23,7 @@ pub enum Command {
     Select,
     Up,
     Down,
+    CycleTheme,
     None,
 }
 
@@ -47,6 +48,7 @@ pub fn command_for(key: KeyEvent) -> Command {
         KeyCode::Char('m') => Command::SortMemory,
         KeyCode::Char('r') => Command::ReverseSort,
         KeyCode::Char('s') => Command::ToggleRecording,
+        KeyCode::Char('t') => Command::CycleTheme,
         KeyCode::Enter => Command::Select,
         KeyCode::Up | KeyCode::Char('k') => Command::Up,
         KeyCode::Down | KeyCode::Char('j') => Command::Down,
@@ -103,6 +105,14 @@ mod tests {
                 KeyEventKind::Release,
             )),
             Command::None
+        ));
+    }
+
+    #[test]
+    fn maps_t_to_theme_cycle() {
+        assert!(matches!(
+            command_for(KeyEvent::new(KeyCode::Char('t'), KeyModifiers::NONE)),
+            Command::CycleTheme
         ));
     }
 }

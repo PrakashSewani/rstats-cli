@@ -79,6 +79,7 @@ The CLI modes are mutually exclusive: `--monitor --open-recordings` is rejected.
 | `R` | Reset live history |
 | `c`, `m` | Sort processes by CPU or memory |
 | `r` | Reverse process sort |
+| `t` | Cycle color theme |
 | `?` | Toggle help |
 
 ## Features
@@ -87,6 +88,7 @@ The CLI modes are mutually exclusive: `--monitor --open-recordings` is rejected.
 - Memory and swap utilization
 - Disk usage and cumulative network byte counters
 - Load average where the platform provides it
+- Dark, light, and mono color themes with live cycling
 - Sortable and filterable process table
 - Bounded CPU, memory, swap, and load history with sparklines
 - Sustained threshold alerts with severity, cooldown, and recovery thresholds
@@ -104,6 +106,7 @@ history_seconds = 300
 recording_dir = "recordings"
 no_color = false
 bell = false
+theme = "dark"
 
 [[alerts]]
 name = "high_cpu"
@@ -121,6 +124,8 @@ Use a configuration file with:
 ```sh
 rstats --monitor --config ~/.config/rstats/config.toml
 ```
+
+The `theme` setting accepts `dark`, `light`, or `mono`. `--theme NAME` overrides the file, and pressing `t` cycles themes live in the TUI.
 
 Supported alert metrics are `cpu.total`, `memory.used_percent`, `swap.used_percent`, and `load.average`. Supported operators are `greater_than`, `greater_than_or_equal`, `less_than`, and `less_than_or_equal`.
 

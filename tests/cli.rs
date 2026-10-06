@@ -1,5 +1,5 @@
 use clap::Parser;
-use rstats::cli::Cli;
+use rstats::{cli::Cli, tui::theme::ThemeName};
 
 #[test]
 fn parses_explicit_monitor_mode() {
@@ -57,4 +57,13 @@ fn rejects_once_and_watch_together() {
 fn rejects_json_without_headless_mode() {
     assert!(Cli::try_parse_from(["rstats", "--json"]).is_err());
     assert!(Cli::try_parse_from(["rstats", "--monitor", "--json"]).is_err());
+}
+
+#[test]
+fn parses_theme_option() {
+    let cli = Cli::try_parse_from(["rstats", "--theme", "mono"]).unwrap();
+    assert_eq!(cli.theme, Some(ThemeName::Mono));
+    let cli = Cli::try_parse_from(["rstats", "--monitor", "--theme", "light"]).unwrap();
+    assert_eq!(cli.theme, Some(ThemeName::Light));
+    assert!(Cli::try_parse_from(["rstats", "--theme", "banana"]).is_err());
 }

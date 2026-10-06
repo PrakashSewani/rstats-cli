@@ -136,6 +136,7 @@ Current controls:
 | `?` | Toggle help |
 | `c`, `m` | Sort processes by CPU or memory |
 | `r` | Reverse process sort |
+| `t` | Cycle color theme (dark, light, mono) |
 | `/` | Maps to a filter command, but the input flow is incomplete |
 
 ## TUI structure
@@ -147,7 +148,7 @@ Current controls:
 - `src/tui/screens/alerts_screen.rs` — active/pending alert table;
 - `src/tui/screens/history_screen.rs` — saved recording catalog, status, and CPU/memory charts.
 
-Reusable widgets are under `src/tui/widgets/`. Styles are centralized in `src/tui/theme.rs` as title, muted, gauge, warning, and critical styles.
+Reusable widgets are under `src/tui/widgets/`. Styles are centralized in `src/tui/theme.rs` as title, muted, gauge, warning, and critical styles resolved against the active palette. The palette is selected by `theme` in the config file or `--theme` on the command line and can be cycled at runtime with `t`; built-in palettes are dark, light, and mono.
 
 ### Dashboard
 

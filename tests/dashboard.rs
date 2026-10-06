@@ -14,6 +14,7 @@ fn config() -> Config {
         recording_directory: "recordings".into(),
         no_color: false,
         bell: false,
+        theme: Default::default(),
         alerts: Vec::new(),
     }
 }
@@ -79,4 +80,15 @@ fn dashboard_summarizes_disks_when_storage_area_is_short() {
     let output = rendered_snapshot(70, 18, disks);
     assert!(output.contains("Storage"));
     assert!(output.contains("more disks"));
+}
+
+#[test]
+fn dashboard_help_overlay_lists_theme_cycle() {
+    let backend = TestBackend::new(120, 40);
+    let mut terminal = Terminal::new(backend).unwrap();
+    let mut state = AppState::new(config());
+    state.help_visible = true;
+    terminal.draw(|frame| render_dashboard(frame, &state)).unwrap();
+    let output = terminal.backend().to_string();
+    assert!(output.contains("Cycle color theme"));
 }

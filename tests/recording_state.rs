@@ -15,6 +15,7 @@ fn config(directory: std::path::PathBuf) -> Config {
         recording_directory: directory,
         no_color: false,
         bell: false,
+        theme: Default::default(),
         alerts: Vec::new(),
     }
 }

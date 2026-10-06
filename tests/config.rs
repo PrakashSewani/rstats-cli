@@ -1,7 +1,7 @@
 use std::{fs, time::Duration};
 use tempfile::tempdir;
 
-use rstats::{cli::Cli, config::Config};
+use rstats::{cli::Cli, config::Config, tui::theme::ThemeName};
 
 #[test]
 fn cli_values_override_file_values() {
@@ -18,6 +18,7 @@ fn cli_values_override_file_values() {
         once: false,
         watch: false,
         json: false,
+        theme: None,
         no_color: false,
         log_level: None,
     };
@@ -25,4 +26,54 @@ fn cli_values_override_file_values() {
     assert_eq!(config.interval, Duration::from_millis(200));
     assert_eq!(config.history_capacity, 100);
     assert_eq!(config.recording_directory, std::path::PathBuf::from("recordings"));
+}
+
+#[test]
+fn theme_reads_from_file_and_cli_overrides() {
+    let directory = tempdir().unwrap();
+    let path = directory.path().join("config.toml");
+    fs::write(&path, "theme = \"light\"\n").unwrap();
+    let cli = Cli {
+        interval_ms: None,
+        history_seconds: None,
+        config: Some(path),
+        recording_dir: None,
+        monitor: false,
+        open_recordings: false,
+        once: false,
+        watch: false,
+        json: false,
+        theme: None,
+        no_color: false,
+        log_level: None,
+    };
+    let config = Config::from_cli(&cli).unwrap();
+    assert_eq!(config.theme, ThemeName::Light);
+    assert_eq!(config.theme.as_str(), "light");
+
+    let cli = Cli { theme: Some(ThemeName::Mono), ..cli };
+    let config = Config::from_cli(&cli).unwrap();
+    assert_eq!(config.theme, ThemeName::Mono);
+}
+
+#[test]
+fn rejects_unknown_theme_in_config_file() {
+    let directory = tempdir().unwrap();
+    let path = directory.path().join("config.toml");
+    fs::write(&path, "theme = \"banana\"\n").unwrap();
+    let cli = Cli {
+        interval_ms: None,
+        history_seconds: None,
+        config: Some(path),
+        recording_dir: None,
+        monitor: false,
+        open_recordings: false,
+        once: false,
+        watch: false,
+        json: false,
+        theme: None,
+        no_color: false,
+        log_level: None,
+    };
+    assert!(Config::from_cli(&cli).is_err());
 }

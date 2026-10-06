@@ -1,6 +1,8 @@
 use clap::{ArgGroup, Parser};
 use std::path::PathBuf;
 
+use crate::tui::theme::ThemeName;
+
 #[derive(Debug, Parser)]
 #[command(
     name = "rstats",
@@ -40,6 +42,8 @@ pub struct Cli {
         help = "Emit JSON output instead of text (use with --once or --watch)"
     )]
     pub json: bool,
+    #[arg(long, value_name = "NAME", help = "Color theme: dark, light, or mono")]
+    pub theme: Option<ThemeName>,
     #[arg(long)]
     pub no_color: bool,
     #[arg(long, value_name = "LEVEL")]

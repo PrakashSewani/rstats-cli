@@ -16,7 +16,7 @@ use crate::{
         screens::{
             render_alert_screen, render_dashboard, render_history_screen, render_process_screen,
         },
-        terminal,
+        terminal, theme,
     },
 };
 
@@ -24,6 +24,7 @@ pub struct App;
 
 impl App {
     pub fn run(config: Config) -> Result<()> {
+        theme::set_theme(config.theme);
         let (sender, receiver) = bounded(4);
         let shutdown = start_sampler(config.interval, sender);
         let mut terminal = terminal::enter()?;
@@ -108,6 +109,9 @@ fn handle_key(state: &mut AppState, key: KeyEvent) -> Command {
         Command::Pause => state.paused = !state.paused,
         Command::ResetHistory => state.reset_history(),
         Command::Help => state.help_visible = !state.help_visible,
+        Command::CycleTheme => {
+            theme::cycle_theme();
+        }
         Command::SortCpu => {
             state.process_view.sort = crate::model::ProcessSort::Cpu;
         }

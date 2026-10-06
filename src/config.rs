@@ -5,6 +5,7 @@ use std::{fs, path::Path, time::Duration};
 use crate::{
     cli::Cli,
     model::{AlertRule, AlertSeverity, Comparison, RuleMetric},
+    tui::theme::ThemeName,
 };
 
 const DEFAULT_INTERVAL_MS: u64 = 1_000;
@@ -19,6 +20,7 @@ pub struct Config {
     pub recording_directory: std::path::PathBuf,
     pub no_color: bool,
     pub bell: bool,
+    pub theme: ThemeName,
     pub alerts: Vec<AlertRule>,
 }
 
@@ -28,6 +30,7 @@ struct FileConfig {
     history_seconds: Option<u64>,
     no_color: Option<bool>,
     bell: Option<bool>,
+    theme: Option<ThemeName>,
     recording_dir: Option<std::path::PathBuf>,
     #[serde(default)]
     alerts: Vec<FileAlertRule>,
@@ -76,6 +79,7 @@ impl Config {
                 .unwrap_or_else(|| std::path::PathBuf::from("recordings")),
             no_color: cli.no_color || file.no_color.unwrap_or(false),
             bell: file.bell.unwrap_or(false),
+            theme: cli.theme.or(file.theme).unwrap_or_default(),
             alerts,
         })
     }
@@ -157,6 +161,7 @@ mod tests {
             once: false,
             watch: false,
             json: false,
+            theme: None,
             no_color: false,
             log_level: None,
         };
