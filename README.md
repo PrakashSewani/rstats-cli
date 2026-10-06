@@ -208,7 +208,7 @@ npm run check-version
 npm run validate-packages
 ```
 
-Create a version tag such as `v0.1.0` after the Rust and npm versions match. The release workflow builds native binaries for all supported targets, stages the five platform packages, validates `npm pack` contents, publishes platform packages first, and publishes `rstats-cli` last. Native binaries and runtime recordings are generated artifacts and are not committed to the repository.
+Create a version tag such as `v0.2.0` after the Rust and npm versions match. The release workflow builds native binaries for all supported targets, stages the five platform packages, validates `npm pack` contents, publishes platform packages first, and publishes `rstats-cli` last. Native binaries and runtime recordings are generated artifacts and are not committed to the repository.
 
 ## License
 

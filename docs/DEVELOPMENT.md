@@ -171,11 +171,11 @@ Release sequence:
 1. Update `Cargo.toml` version.
 2. Run `npm run sync-version`.
 3. Run all Rust and npm checks.
-4. Push the matching tag, for example `v0.1.0`.
+4. Push the matching tag, for example `v0.2.0`.
 5. The validate job checks the tag/version and all quality checks.
 6. The build matrix produces five native targets; Linux arm64 uses `cross` 0.2.5.
 7. The package job stages binaries, validates with `--require-binaries`, dry-runs packages, and creates checksums.
-8. The publish job publishes platform packages first, then `rstats-cli`, using npm trusted publishing/OIDC and provenance.
+8. The publish job publishes platform packages first, then `rstats-cli`, with provenance. The first releases authenticate with the `NPM_TOKEN` repository secret, because trusted publishing cannot create package names that do not exist yet; once trusted publishing is configured for all six names, OIDC takes over and the secret can be removed.
 9. The GitHub release job attaches native binaries and checksums.
 
 Do not push a tag until `npm run check-version` passes and the tag exactly matches the Cargo version.

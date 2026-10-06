@@ -1,6 +1,6 @@
 {
   "name": "rstats-cli",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Cross-platform terminal system resource monitor",
   "bin": {
     "rstats": "bin/rstats.js"
@@ -9,11 +9,11 @@
     "node": ">=18"
   },
   "optionalDependencies": {
-    "rstats-cli-darwin-x64": "0.1.0",
-    "rstats-cli-darwin-arm64": "0.1.0",
-    "rstats-cli-linux-x64": "0.1.0",
-    "rstats-cli-linux-arm64": "0.1.0",
-    "rstats-cli-win32-x64": "0.1.0"
+    "rstats-cli-darwin-x64": "0.2.0",
+    "rstats-cli-darwin-arm64": "0.2.0",
+    "rstats-cli-linux-x64": "0.2.0",
+    "rstats-cli-linux-arm64": "0.2.0",
+    "rstats-cli-win32-x64": "0.2.0"
   },
   "files": [
     "bin/rstats.js",

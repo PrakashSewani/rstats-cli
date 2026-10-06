@@ -71,7 +71,7 @@ The tagged release workflow builds these targets:
 - `aarch64-unknown-linux-gnu`
 - `x86_64-pc-windows-msvc`
 
-It publishes platform packages before `rstats-cli`, creates checksums, and attaches native artifacts to the GitHub release. Publishing requires npm trusted publishing/OIDC to be configured for the package names and repository.
+It publishes platform packages before `rstats-cli`, creates checksums, and attaches native artifacts to the GitHub release. Publishing uses npm trusted publishing/OIDC once it is configured for the package names and repository; bootstrap releases authenticate with the `NPM_TOKEN` repository secret, since trusted publishing cannot create package names that do not exist yet.
 
 ## Security
 

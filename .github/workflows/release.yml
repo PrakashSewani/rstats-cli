@@ -122,6 +122,9 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    # Bootstrap auth until npm trusted publishing is configured for every package name.
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
