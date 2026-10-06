@@ -162,6 +162,10 @@ mod tests {
             watch: false,
             json: false,
             theme: None,
+            export: None,
+            format: None,
+            output: None,
+            report: None,
             no_color: false,
             log_level: None,
         };

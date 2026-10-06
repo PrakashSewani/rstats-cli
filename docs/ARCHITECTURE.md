@@ -8,6 +8,7 @@
 src/main.rs                 startup and CLI dispatch
 src/cli.rs                  Clap arguments
 src/config.rs               TOML + CLI configuration
+src/export.rs               recording export (CSV/JSON) and reports
 src/format.rs               shared byte, rate, and uptime formatting
 src/headless.rs             --once and --watch headless output
 src/model/                  serializable domain types
@@ -34,10 +35,11 @@ scripts/                    version, package, and release helpers
 2. Initialize tracing.
 3. Build `Config` through `Config::from_cli` in `src/config.rs`.
 4. If `--open-recordings` is set, create/open the configured directory through `src/open_recordings.rs`.
-5. If `--once` or `--watch` is set, emit headless output through `src/headless.rs`.
-6. Otherwise call `App::run(config)` in `src/app/runner.rs`.
+5. If `--export` or `--report` is set, emit recording output through `src/export.rs`.
+6. If `--once` or `--watch` is set, emit headless output through `src/headless.rs`.
+7. Otherwise call `App::run(config)` in `src/app/runner.rs`.
 
-Plain `rstats` and `rstats --monitor` both start the interactive monitor. `--monitor` and `--open-recordings` conflict. `--once` and `--watch` are headless output modes: they conflict with both TUI modes and with each other, and `--json` requires one of them.
+Plain `rstats` and `rstats --monitor` both start the interactive monitor. `--monitor` and `--open-recordings` conflict. `--once` and `--watch` are headless output modes: they conflict with both TUI modes and with each other, and `--json` requires one of them. `--export` and `--report` are recording-analysis modes: they conflict with the TUI and headless modes and with each other, and `--format`/`--output` require `--export`.
 
 `--once` collects a single snapshot after a warm-up pause and prints it (human-readable summary, or pretty JSON with `--json`). `--watch` repeats collection on the configured interval and writes one plain-text line per sample (compact JSON Lines with `--json`), flushing every line; it exits cleanly on a closed stdout pipe. Sample clocks in watch lines are UTC.
 
@@ -170,7 +172,7 @@ The widget handles an empty list with `No disks detected`, though the Dashboard 
 
 ### History visualizer
 
-`src/tui/screens/history_screen.rs` shows the active recording histories while recording. When idle, it prefers an explicitly loaded session and otherwise previews the selected catalog entry. Empty recordings show a clear no-samples state. Charts render as a 2x2 grid: CPU, memory, network throughput (receive plus transmit rates), and worst-disk usage. `RecordedSession` retains CPU, memory, swap, and load-average series plus network receive/transmit rates and worst-disk usage derived at load time; raw timestamps are not retained as chart fields.
+`src/tui/screens/history_screen.rs` shows the active recording histories while recording. When idle, it prefers an explicitly loaded session and otherwise previews the selected catalog entry. Empty recordings show a clear no-samples state. Charts render as a 2x2 grid: CPU, memory, network throughput (receive plus transmit rates), and worst-disk usage. `RecordedSession` retains CPU, memory, swap, and load-average series plus network receive/transmit rates, worst-disk usage, and per-sample timestamps derived at load time.
 
 ### History storage
 
@@ -188,9 +190,13 @@ The widget handles an empty list with `No disks detected`, though the Dashboard 
 
 Actual samples contain the complete `Snapshot`, including processes, disks, and networks. `Recorder::start` creates a unique `rstats-<epoch-milliseconds>.jsonl` path, writes and flushes the header, and initializes the count. `Recorder::record` writes and flushes every sample. `Recorder::finish` writes and flushes the footer.
 
-`RecordedSession::load` reads valid lines and extracts session metadata plus CPU, memory, swap, and load-average vectors, network receive/transmit rates, and worst-disk usage. If valid sample records exist, their parsed count is authoritative; the footer count is only used when no valid samples were parsed. Invalid JSONL lines are skipped so interrupted files with valid lines remain loadable. `list_recordings` discovers `.jsonl` files and silently skips files that cannot be loaded.
+`RecordedSession::load` reads valid lines and extracts session metadata plus CPU, memory, swap, and load-average vectors, network receive/transmit rates, worst-disk usage, and per-sample timestamps. If valid sample records exist, their parsed count is authoritative; the footer count is only used when no valid samples were parsed. Invalid JSONL lines are skipped so interrupted files with valid lines remain loadable. `list_recordings` discovers `.jsonl` files and silently skips files that cannot be loaded.
 
 Do not remove the header/sample/footer structure, per-sample flush behavior, or parsed-sample-count precedence without updating compatibility tests and documentation.
+
+## Export and reports
+
+`src/export.rs` reuses `RecordedSession::load`. `--export` writes one row per sample to stdout or `--output FILE`: CSV by default, JSON rows with `--format json`. Columns are `timestamp_ms`, `cpu_total_pct`, `memory_used_pct`, `swap_used_pct`, `load_average`, `net_received_bps`, `net_transmitted_bps`, and `disk_max_used_pct`. The `load_average` cell is written only when the loaded load-average vector is aligned with the sample count. `--report` prints per-metric averages and peaks with peak time offsets from the first sample. Both modes reject recordings with no samples.
 
 ## Alerts
 

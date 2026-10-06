@@ -99,6 +99,7 @@ pub struct RecordedSession {
     pub started_at: Option<SystemTime>,
     pub stopped_at: Option<SystemTime>,
     pub samples: u64,
+    pub timestamps: Vec<u64>,
     pub cpu: Vec<f64>,
     pub memory: Vec<f64>,
     pub swap: Vec<f64>,
@@ -125,6 +126,7 @@ impl RecordedSession {
             started_at: None,
             stopped_at: None,
             samples: 0,
+            timestamps: Vec::new(),
             cpu: Vec::new(),
             memory: Vec::new(),
             swap: Vec::new(),
@@ -143,6 +145,7 @@ impl RecordedSession {
                     session.started_at = Some(from_timestamp_ms(started_at_ms));
                 }
                 StoredRecord::Sample { snapshot } => {
+                    session.timestamps.push(timestamp_ms(snapshot.timestamp));
                     session.cpu.push(snapshot.cpu.total_usage);
                     session.memory.push(snapshot.memory.used_percent);
                     session.swap.push(snapshot.swap.used_percent);

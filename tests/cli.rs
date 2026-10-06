@@ -1,5 +1,5 @@
 use clap::Parser;
-use rstats::{cli::Cli, tui::theme::ThemeName};
+use rstats::{cli::Cli, export::ExportFormat, tui::theme::ThemeName};
 
 #[test]
 fn parses_explicit_monitor_mode() {
@@ -66,4 +66,33 @@ fn parses_theme_option() {
     let cli = Cli::try_parse_from(["rstats", "--monitor", "--theme", "light"]).unwrap();
     assert_eq!(cli.theme, Some(ThemeName::Light));
     assert!(Cli::try_parse_from(["rstats", "--theme", "banana"]).is_err());
+}
+
+#[test]
+fn parses_export_and_report_modes() {
+    let cli = Cli::try_parse_from([
+        "rstats",
+        "--export",
+        "session.jsonl",
+        "--format",
+        "json",
+        "--output",
+        "out.json",
+    ])
+    .unwrap();
+    assert_eq!(cli.export, Some(std::path::PathBuf::from("session.jsonl")));
+    assert_eq!(cli.format, Some(ExportFormat::Json));
+    assert_eq!(cli.output, Some(std::path::PathBuf::from("out.json")));
+
+    let cli = Cli::try_parse_from(["rstats", "--report", "session.jsonl"]).unwrap();
+    assert_eq!(cli.report, Some(std::path::PathBuf::from("session.jsonl")));
+}
+
+#[test]
+fn rejects_invalid_export_flag_combinations() {
+    assert!(Cli::try_parse_from(["rstats", "--format", "csv"]).is_err());
+    assert!(Cli::try_parse_from(["rstats", "--export", "a.jsonl", "--report", "b.jsonl"]).is_err());
+    assert!(Cli::try_parse_from(["rstats", "--monitor", "--export", "a.jsonl"]).is_err());
+    assert!(Cli::try_parse_from(["rstats", "--once", "--report", "a.jsonl"]).is_err());
+    assert!(Cli::try_parse_from(["rstats", "--export", "a.jsonl", "--format", "xml"]).is_err());
 }

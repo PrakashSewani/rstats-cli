@@ -19,6 +19,10 @@ fn cli_values_override_file_values() {
         watch: false,
         json: false,
         theme: None,
+        export: None,
+        format: None,
+        output: None,
+        report: None,
         no_color: false,
         log_level: None,
     };
@@ -44,6 +48,10 @@ fn theme_reads_from_file_and_cli_overrides() {
         watch: false,
         json: false,
         theme: None,
+        export: None,
+        format: None,
+        output: None,
+        report: None,
         no_color: false,
         log_level: None,
     };
@@ -72,6 +80,10 @@ fn rejects_unknown_theme_in_config_file() {
         watch: false,
         json: false,
         theme: None,
+        export: None,
+        format: None,
+        output: None,
+        report: None,
         no_color: false,
         log_level: None,
     };

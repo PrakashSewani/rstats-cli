@@ -58,6 +58,18 @@ rstats --once --json | jq .cpu.total_usage
 
 Headless modes conflict with `--monitor` and `--open-recordings`; `--json` requires `--once` or `--watch`.
 
+## Exporting recordings
+
+Convert a recorded session into a table or read a quick summary:
+
+```sh
+rstats --export recordings/rstats-1234567890.jsonl --format csv --output rstats.csv
+rstats --export recordings/rstats-1234567890.jsonl --format json
+rstats --report recordings/rstats-1234567890.jsonl
+```
+
+`--export` writes one row per sample — timestamp, CPU, memory, swap, load, network receive/transmit rates, and worst-disk usage — as CSV (default) or JSON. Output goes to stdout unless `--output FILE` is given. `--report` prints averages and peaks for each metric with the time offset of every peak.
+
 The recording directory resolves in this order:
 
 1. `--recording-dir DIRECTORY`

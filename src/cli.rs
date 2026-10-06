@@ -1,7 +1,7 @@
 use clap::{ArgGroup, Parser};
 use std::path::PathBuf;
 
-use crate::tui::theme::ThemeName;
+use crate::{export::ExportFormat, tui::theme::ThemeName};
 
 #[derive(Debug, Parser)]
 #[command(
@@ -44,6 +44,34 @@ pub struct Cli {
     pub json: bool,
     #[arg(long, value_name = "NAME", help = "Color theme: dark, light, or mono")]
     pub theme: Option<ThemeName>,
+    #[arg(
+        long,
+        value_name = "FILE",
+        conflicts_with_all = ["monitor", "open_recordings", "once", "watch", "report"],
+        help = "Export a recording to CSV or JSON and exit"
+    )]
+    pub export: Option<PathBuf>,
+    #[arg(
+        long,
+        value_name = "FORMAT",
+        requires = "export",
+        help = "Export format: csv or json (default csv)"
+    )]
+    pub format: Option<ExportFormat>,
+    #[arg(
+        long,
+        value_name = "FILE",
+        requires = "export",
+        help = "Write export output to FILE instead of stdout"
+    )]
+    pub output: Option<PathBuf>,
+    #[arg(
+        long,
+        value_name = "FILE",
+        conflicts_with_all = ["monitor", "open_recordings", "once", "watch"],
+        help = "Print an averages and peaks summary for a recording and exit"
+    )]
+    pub report: Option<PathBuf>,
     #[arg(long)]
     pub no_color: bool,
     #[arg(long, value_name = "LEVEL")]
