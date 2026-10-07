@@ -7,11 +7,17 @@ use crate::{
     config::Config,
     history::History,
     model::{MetricKind, NetworkSnapshot, ProcessSort, ProcessView, Snapshot},
-    recording::{list_recordings, RecordedSession, Recorder, RecordingSummary},
+    recording::{list_recordings, CaptureScope, RecordedSession, Recorder, RecordingSummary},
     series::{max_disk_used_percent, net_rates},
 };
 
 const MAX_RECORDING_SAMPLES: usize = 86_400;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DeepCaptureIntent {
+    Enable,
+    Start,
+}
 
 pub struct AppState {
     pub config: Config,
@@ -27,6 +33,9 @@ pub struct AppState {
     pub help_visible: bool,
     pub collector_error: Option<String>,
     pub recording_error: Option<String>,
+    pub record_scope: CaptureScope,
+    pub deep_capture_confirmed: bool,
+    pub deep_capture_dialog: Option<DeepCaptureIntent>,
     pub recorder: Option<Recorder>,
     pub last_recording: Option<RecordingSummary>,
     pub saved_recordings: Vec<RecordedSession>,
@@ -36,6 +45,7 @@ pub struct AppState {
 
 impl AppState {
     pub fn new(config: Config) -> Self {
+        let record_scope = config.record_scope;
         let mut histories = HashMap::new();
         let mut recording_histories = HashMap::new();
         for kind in [
@@ -68,6 +78,9 @@ impl AppState {
             help_visible: false,
             collector_error: None,
             recording_error: None,
+            record_scope,
+            deep_capture_confirmed: false,
+            deep_capture_dialog: None,
             recorder: None,
             last_recording: None,
             saved_recordings: Vec::new(),
@@ -156,11 +169,48 @@ impl AppState {
     pub fn toggle_recording(&mut self) -> anyhow::Result<()> {
         if self.recorder.is_some() {
             self.stop_recording()?;
+        } else if self.record_scope == CaptureScope::Deep && !self.deep_capture_confirmed {
+            self.deep_capture_dialog = Some(DeepCaptureIntent::Start);
         } else {
             self.start_recording()?;
         }
         self.recording_error = None;
         Ok(())
+    }
+
+    pub fn toggle_record_scope(&mut self) {
+        if self.recorder.is_some() {
+            self.recording_error =
+                Some("stop the recording before changing capture scope".to_owned());
+            return;
+        }
+        match self.record_scope {
+            CaptureScope::Standard => {
+                if self.deep_capture_confirmed {
+                    self.record_scope = CaptureScope::Deep;
+                } else {
+                    self.deep_capture_dialog = Some(DeepCaptureIntent::Enable);
+                }
+            }
+            CaptureScope::Deep => self.record_scope = CaptureScope::Standard,
+        }
+    }
+
+    pub fn confirm_deep_capture(&mut self) {
+        let Some(intent) = self.deep_capture_dialog.take() else {
+            return;
+        };
+        self.deep_capture_confirmed = true;
+        self.record_scope = CaptureScope::Deep;
+        if intent == DeepCaptureIntent::Start {
+            if let Err(error) = self.start_recording() {
+                self.recording_error = Some(error.to_string());
+            }
+        }
+    }
+
+    pub fn cancel_deep_capture(&mut self) {
+        self.deep_capture_dialog = None;
     }
 
     pub fn stop_recording(&mut self) -> anyhow::Result<Option<RecordingSummary>> {
@@ -186,7 +236,7 @@ impl AppState {
     }
 
     fn start_recording(&mut self) -> anyhow::Result<()> {
-        let recorder = Recorder::start(&self.config.recording_directory)?;
+        let recorder = Recorder::start(&self.config.recording_directory, self.record_scope)?;
         self.recording_histories.values_mut().for_each(History::clear);
         self.last_recording = None;
         self.loaded_recording = None;

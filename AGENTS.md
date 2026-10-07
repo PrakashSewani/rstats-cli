@@ -33,12 +33,13 @@ Read this file before changing source code, tests, packaging, or workflows. It i
 - `src/app/command.rs` — Crossterm key-to-command mapping. Only `KeyEventKind::Press` may trigger actions.
 - `src/history/` — bounded `History` ring buffer used by `AppState`.
 - `src/alerts/` — sustained-threshold alert evaluator.
-- `src/recording.rs` — flushed JSONL recorder, loader, summaries, and catalog discovery.
+- `src/recording.rs` — flushed JSONL recorder with capture scopes, loader, summaries, and catalog discovery.
 - `src/series.rs` — derived series helpers for network rates and worst-disk usage.
 - `src/tui/layout.rs` — dashboard layout, including conditional dynamic storage space.
-- `src/tui/screens/` — Dashboard, Processes, Alerts, and recording History screens.
+- `src/tui/screens/` — Dashboard, Processes, Alerts, recording History, and the deep-capture dialog.
 - `src/tui/widgets/` — reusable header, overview, process, alert, sparkline, and Storage widgets.
 - `tests/` — integration tests for CLI, config, collector, domain, history, recording, state, and dashboard rendering.
+- `viewer/` — static recording viewer (Vite + TypeScript, client-side only).
 - `npm/` — launcher package and five platform package manifests.
 - `scripts/` — version sync, package validation, launcher tests, and release staging.
 - `.github/workflows/` — CI and tag-driven release automation.
@@ -64,7 +65,7 @@ SysinfoCollector
 - Keep recording files JSONL and flush samples as they are written; interrupted files with valid sample lines should remain loadable.
 - Preserve header/sample/footer recording records and do not trust a footer count over parsed sample records when valid samples exist.
 - Only key presses trigger commands. Repeat/release events must not toggle recording or move selections.
-- Recordings use `s`: the active state is `AppState.recorder.is_some()`. The UI should show an active marker and contextual start/stop action.
+- Recordings use `s`: the active state is `AppState.recorder.is_some()`. The UI shows an active marker and contextual start/stop action. `S` toggles the capture scope; deep capture is opt-in and must not collect until the user confirms the warning dialog.
 - Disk UI must use the collected `Snapshot.disks` dynamically, display per-drive usage percentage and capacity, and remain readable on narrow terminals.
 - Bound live histories and avoid adding unbounded state to the event loop without a deliberate design.
 - Use existing project patterns and styles. Do not add comments unless the logic truly needs one.

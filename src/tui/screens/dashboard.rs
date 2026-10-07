@@ -83,7 +83,7 @@ pub fn render_dashboard(frame: &mut Frame, state: &AppState) {
     frame.render_widget(Paragraph::new(footer).style(theme::muted()), dashboard.footer);
     if state.help_visible {
         let area = centered_rect(70, 50, frame.size());
-        frame.render_widget(Paragraph::new("rstats controls\n\nq / Ctrl-C  Quit\n1 / 2 / 3 / 4 Views\ns           Start/stop recording\nspace       Pause updates\nR           Reset history\nc / m       Sort processes\nr           Reverse sort\nt           Cycle color theme\n?           Toggle help").block(Block::default().title("Help").borders(Borders::ALL)).wrap(Wrap { trim: true }), area);
+        frame.render_widget(Paragraph::new("rstats controls\n\nq / Ctrl-C  Quit\n1 / 2 / 3 / 4 Views\ns           Start/stop recording\nS           Toggle deep capture\nspace       Pause updates\nR           Reset history\nc / m       Sort processes\nr           Reverse sort\nt           Cycle color theme\n?           Toggle help").block(Block::default().title("Help").borders(Borders::ALL)).wrap(Wrap { trim: true }), area);
     }
 }
 

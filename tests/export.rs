@@ -8,7 +8,7 @@ use tempfile::tempdir;
 use rstats::{
     export::{render_csv, render_json, render_report, run_export, ExportFormat},
     model::{CpuSnapshot, DiskSnapshot, MemorySnapshot, NetworkSnapshot, Snapshot},
-    recording::{RecordedSession, Recorder},
+    recording::{CaptureScope, RecordedSession, Recorder},
 };
 
 fn sample(
@@ -42,7 +42,7 @@ fn sample(
 }
 
 fn write_session(directory: &Path) -> PathBuf {
-    let mut recorder = Recorder::start(directory).unwrap();
+    let mut recorder = Recorder::start(directory, CaptureScope::Standard).unwrap();
     recorder.record(&sample(10, 42.0, 64.0, 1_000, 2_000, 60.0, Some(1.5))).unwrap();
     recorder.record(&sample(12, 50.0, 70.0, 5_000, 4_000, 80.0, Some(2.5))).unwrap();
     recorder.finish().unwrap().path
@@ -104,7 +104,7 @@ fn report_summarizes_a_session() {
 #[test]
 fn export_rejects_sessions_without_samples() {
     let directory = tempdir().unwrap();
-    let recorder = Recorder::start(directory.path()).unwrap();
+    let recorder = Recorder::start(directory.path(), CaptureScope::Standard).unwrap();
     let summary = recorder.finish().unwrap();
 
     assert!(run_export(&summary.path, ExportFormat::Csv, None).is_err());

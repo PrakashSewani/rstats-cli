@@ -20,6 +20,7 @@ pub enum Command {
     SortMemory,
     ReverseSort,
     ToggleRecording,
+    ToggleScope,
     Select,
     Up,
     Down,
@@ -48,6 +49,7 @@ pub fn command_for(key: KeyEvent) -> Command {
         KeyCode::Char('m') => Command::SortMemory,
         KeyCode::Char('r') => Command::ReverseSort,
         KeyCode::Char('s') => Command::ToggleRecording,
+        KeyCode::Char('S') => Command::ToggleScope,
         KeyCode::Char('t') => Command::CycleTheme,
         KeyCode::Enter => Command::Select,
         KeyCode::Up | KeyCode::Char('k') => Command::Up,
@@ -113,6 +115,30 @@ mod tests {
         assert!(matches!(
             command_for(KeyEvent::new(KeyCode::Char('t'), KeyModifiers::NONE)),
             Command::CycleTheme
+        ));
+    }
+
+    #[test]
+    fn only_key_presses_trigger_scope_toggle() {
+        assert!(matches!(
+            command_for(KeyEvent::new(KeyCode::Char('S'), KeyModifiers::SHIFT)),
+            Command::ToggleScope
+        ));
+        assert!(matches!(
+            command_for(KeyEvent::new_with_kind(
+                KeyCode::Char('S'),
+                KeyModifiers::SHIFT,
+                KeyEventKind::Repeat,
+            )),
+            Command::None
+        ));
+        assert!(matches!(
+            command_for(KeyEvent::new_with_kind(
+                KeyCode::Char('S'),
+                KeyModifiers::SHIFT,
+                KeyEventKind::Release,
+            )),
+            Command::None
         ));
     }
 }

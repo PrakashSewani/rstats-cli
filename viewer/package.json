@@ -1,0 +1,25 @@
+{
+  "name": "rstats-viewer",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Browser viewer for rstats recordings — explore standard and deep captures with zoom, pan, and process-level detail.",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build && node scripts/postbuild.mjs",
+    "preview": "vite preview",
+    "check": "tsc --noEmit",
+    "demo": "node scripts/generate-demo.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "uplot": "^1.6.32"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vite": "^8.3.3"
+  }
+}
