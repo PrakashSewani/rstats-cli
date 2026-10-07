@@ -5,6 +5,7 @@ use std::{fs, path::Path, time::Duration};
 use crate::{
     cli::Cli,
     model::{AlertRule, AlertSeverity, Comparison, RuleMetric},
+    recording::CaptureScope,
     tui::theme::ThemeName,
 };
 
@@ -22,6 +23,7 @@ pub struct Config {
     pub bell: bool,
     pub theme: ThemeName,
     pub alerts: Vec<AlertRule>,
+    pub record_scope: CaptureScope,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -32,6 +34,7 @@ struct FileConfig {
     bell: Option<bool>,
     theme: Option<ThemeName>,
     recording_dir: Option<std::path::PathBuf>,
+    record_scope: Option<CaptureScope>,
     #[serde(default)]
     alerts: Vec<FileAlertRule>,
 }
@@ -81,6 +84,7 @@ impl Config {
             bell: file.bell.unwrap_or(false),
             theme: cli.theme.or(file.theme).unwrap_or_default(),
             alerts,
+            record_scope: file.record_scope.unwrap_or_default(),
         })
     }
 }

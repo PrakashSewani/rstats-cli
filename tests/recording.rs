@@ -2,14 +2,16 @@ use std::fs;
 use tempfile::tempdir;
 
 use rstats::{
-    model::{CpuSnapshot, DiskSnapshot, MemorySnapshot, NetworkSnapshot, Snapshot},
-    recording::{list_recordings, RecordedSession, Recorder},
+    model::{
+        CpuSnapshot, DiskSnapshot, MemorySnapshot, NetworkSnapshot, ProcessSnapshot, Snapshot,
+    },
+    recording::{list_recordings, CaptureScope, RecordedSession, Recorder},
 };
 
 #[test]
 fn recording_file_is_streamable_jsonl() {
     let directory = tempdir().unwrap();
-    let mut recorder = Recorder::start(directory.path()).unwrap();
+    let mut recorder = Recorder::start(directory.path(), CaptureScope::Standard).unwrap();
     recorder.record(&Snapshot::default()).unwrap();
     let summary = recorder.finish().unwrap();
     let lines = fs::read_to_string(summary.path).unwrap();
@@ -20,7 +22,7 @@ fn recording_file_is_streamable_jsonl() {
 #[test]
 fn catalog_loads_recorded_chart_values() {
     let directory = tempdir().unwrap();
-    let mut recorder = Recorder::start(directory.path()).unwrap();
+    let mut recorder = Recorder::start(directory.path(), CaptureScope::Standard).unwrap();
     recorder
         .record(&Snapshot {
             cpu: CpuSnapshot { total_usage: 42.0, per_core: Vec::new() },
@@ -40,7 +42,7 @@ fn catalog_loads_recorded_chart_values() {
 #[test]
 fn catalog_preserves_disk_data_from_recorded_samples() {
     let directory = tempdir().unwrap();
-    let mut recorder = Recorder::start(directory.path()).unwrap();
+    let mut recorder = Recorder::start(directory.path(), CaptureScope::Standard).unwrap();
     let disks = (0..6)
         .map(|index| DiskSnapshot {
             name: format!("disk-{index}"),
@@ -66,7 +68,7 @@ fn catalog_preserves_disk_data_from_recorded_samples() {
 #[test]
 fn catalog_extracts_network_rates_and_disk_series() {
     let directory = tempdir().unwrap();
-    let mut recorder = Recorder::start(directory.path()).unwrap();
+    let mut recorder = Recorder::start(directory.path(), CaptureScope::Standard).unwrap();
     let sample = |seconds: u64, received: u64, transmitted: u64, used: f64| Snapshot {
         timestamp: std::time::UNIX_EPOCH + std::time::Duration::from_secs(seconds),
         networks: vec![NetworkSnapshot {
@@ -95,4 +97,56 @@ fn catalog_extracts_network_rates_and_disk_series() {
     let listed = list_recordings(directory.path()).unwrap();
     assert_eq!(listed.len(), 1);
     assert_eq!(listed[0].net_received, loaded.net_received);
+}
+
+fn sample_with_process() -> Snapshot {
+    Snapshot {
+        processes: vec![ProcessSnapshot { pid: 42, ..ProcessSnapshot::default() }],
+        ..Snapshot::default()
+    }
+}
+
+#[test]
+fn standard_scope_omits_processes_and_deep_scope_keeps_them() {
+    let directory = tempdir().unwrap();
+
+    let mut standard = Recorder::start(directory.path(), CaptureScope::Standard).unwrap();
+    standard.record(&sample_with_process()).unwrap();
+    let standard_summary = standard.finish().unwrap();
+    let contents = fs::read_to_string(&standard_summary.path).unwrap();
+    let lines: Vec<serde_json::Value> =
+        contents.lines().map(|line| serde_json::from_str(line).unwrap()).collect();
+    assert_eq!(lines[0]["scope"], "standard");
+    assert!(lines[1]["snapshot"].get("processes").is_none());
+    assert_eq!(
+        RecordedSession::load(&standard_summary.path).unwrap().scope,
+        Some(CaptureScope::Standard)
+    );
+
+    let mut deep = Recorder::start(directory.path(), CaptureScope::Deep).unwrap();
+    deep.record(&sample_with_process()).unwrap();
+    let deep_summary = deep.finish().unwrap();
+    let contents = fs::read_to_string(&deep_summary.path).unwrap();
+    let lines: Vec<serde_json::Value> =
+        contents.lines().map(|line| serde_json::from_str(line).unwrap()).collect();
+    assert_eq!(lines[0]["scope"], "deep");
+    assert_eq!(lines[1]["snapshot"]["processes"][0]["pid"], 42);
+    assert_eq!(RecordedSession::load(&deep_summary.path).unwrap().scope, Some(CaptureScope::Deep));
+}
+
+#[test]
+fn legacy_recordings_without_scope_field_remain_loadable() {
+    let directory = tempdir().unwrap();
+    let path = directory.path().join("rstats-legacy.jsonl");
+    let sample = serde_json::to_string(&Snapshot::default()).unwrap();
+    let contents = format!(
+        "{{\"type\":\"header\",\"version\":1,\"started_at_ms\":1000}}\n\
+         {{\"type\":\"sample\",\"snapshot\":{sample}}}\n\
+         {{\"type\":\"footer\",\"stopped_at_ms\":2000,\"samples\":1}}\n"
+    );
+    fs::write(&path, contents).unwrap();
+
+    let loaded = RecordedSession::load(&path).unwrap();
+    assert_eq!(loaded.samples, 1);
+    assert_eq!(loaded.scope, None);
 }

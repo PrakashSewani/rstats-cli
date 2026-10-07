@@ -25,7 +25,7 @@ metadata:
 | CLI/config | `src/cli.rs`, `src/config.rs`, `src/main.rs`, `tests/cli.rs`, `tests/config.rs` |
 | collection/model | `src/collector/`, `src/model/`, `tests/collector.rs`, `tests/domain.rs` |
 | event loop/commands | `src/app/runner.rs`, `src/app/command.rs`, `src/app/event.rs` |
-| state/recording | `src/app/state.rs`, `src/recording.rs`, `tests/recording*.rs` |
+| state/recording | `src/app/state.rs`, `src/recording.rs`, `src/tui/screens/deep_capture_dialog.rs`, `tests/recording*.rs` |
 | dashboard/TUI | `src/tui/layout.rs`, `src/tui/screens/`, `src/tui/widgets/`, `tests/dashboard.rs` |
 | alerts/history | `src/alerts/`, `src/history/`, `tests/domain.rs`, `tests/history.rs` |
 | npm/release | `package.json`, `npm/`, `scripts/`, `.github/workflows/`, `docs/DEVELOPMENT.md` |
@@ -35,6 +35,7 @@ metadata:
 - `Snapshot` is the central runtime and recording object.
 - Keep `Snapshot.disks: Vec<DiskSnapshot>` dynamic for zero, one, and many drives. Storage indicators belong on the live Dashboard and must remain readable in narrow terminals.
 - `AppState.recorder.is_some()` is the authoritative active-recording state. `s` starts/stops recording; the UI shows an active marker and contextual action.
+- Deep capture is opt-in: recordings default to the `standard` scope. `S` toggles the scope and a deep recording must not collect until `confirm_deep_capture` runs.
 - Only `KeyEventKind::Press` triggers commands. Ignore repeat and release events so toggles and navigation happen once.
 - Preserve JSONL header/sample/footer records, flush each sample, and prefer parsed valid sample counts over an untrusted footer count.
 - Bound live histories. Do not add unbounded event-loop state without a deliberate design.

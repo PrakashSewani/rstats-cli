@@ -91,6 +91,7 @@ The CLI modes are mutually exclusive: `--monitor --open-recordings` is rejected.
 | Up/Down | Select a saved recording on screen `4` |
 | Enter | Load the selected recording into the charts |
 | `s` | Start/stop recording |
+| `S` | Toggle deep capture (asks for confirmation) |
 | `q`, Ctrl-C | Quit and finalize any active recording |
 | Space | Pause/resume updates |
 | `R` | Reset live history |
@@ -109,7 +110,7 @@ The CLI modes are mutually exclusive: `--monitor --open-recordings` is rejected.
 - Sortable and filterable process table
 - Bounded CPU, memory, swap, load, network, and disk history with sparklines
 - Sustained threshold alerts with severity, cooldown, and recovery thresholds
-- Start/stop recording sessions to portable JSONL files
+- Start/stop recording sessions to portable JSONL files (standard scope by default, opt-in deep capture)
 - Built-in recording catalog with CPU, memory, network, and disk charts
 - Interrupted recordings remain loadable when valid samples were flushed
 
@@ -135,6 +136,7 @@ CLI arguments override values from the TOML file:
 interval_ms = 1000
 history_seconds = 300
 recording_dir = "recordings"
+record_scope = "standard"
 no_color = false
 bell = false
 theme = "dark"
@@ -158,11 +160,15 @@ rstats --monitor --config ~/.config/rstats/config.toml
 
 The `theme` setting accepts `dark`, `light`, or `mono`. `--theme NAME` overrides the file, and pressing `t` cycles themes live in the TUI.
 
+The `record_scope` setting accepts `standard` (default) or `deep`; `S` toggles it for the current session.
+
 Supported alert metrics are `cpu.total`, `memory.used_percent`, `swap.used_percent`, and `load.average`. Supported operators are `greater_than`, `greater_than_or_equal`, `less_than`, and `less_than_or_equal`.
 
 ## Recording format
 
 Press `s` to start or stop a session. Each session creates `rstats-<epoch-milliseconds>.jsonl` with one JSON object per line: a header, each collected sample, and a footer containing the stop time and sample count. The file is flushed after every sample.
+
+Recordings use the standard capture scope by default. Press `S` to toggle deep capture, or set `record_scope = "deep"` in the configuration file — either way, the first deep recording asks for confirmation before collecting. Deep capture adds the full process table to every sample for forensic review of a session, but grows files roughly 100x faster (about 15 MB per minute versus about 0.1 MB per minute at the default 1-second interval), so keep it to short, deliberate sessions. The header of each recording records the capture scope it was made with.
 
 Open screen `4` to browse saved sessions. Use Up/Down to select a file and Enter to load its CPU, memory, network, and disk charts directly inside the TUI. You do not need to open the JSONL file manually.
 

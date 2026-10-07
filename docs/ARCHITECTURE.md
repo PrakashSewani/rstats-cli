@@ -16,7 +16,7 @@ src/collector/              system metric collection
 src/app/                    event loop, commands, and mutable state
 src/history/                bounded live history ring buffer
 src/alerts/                 sustained alert evaluation
-src/recording.rs             JSONL recording and catalog loading
+src/recording.rs             JSONL recording (capture scopes) and catalog loading
 src/series.rs                derived series helpers (network rates, disk usage)
 src/tui/                    terminal lifecycle, layout, screens, widgets
 tests/                      Rust integration coverage
@@ -107,6 +107,7 @@ Collection normalization includes:
 - current recording histories, bounded to 86,400 samples;
 - alert events and evaluator state;
 - screen, pause, help, and error state;
+- capture scope and deep-capture confirmation state (dialog and session flag);
 - active `Recorder`;
 - last recording summary;
 - saved recording catalog, selection index, and explicitly loaded session.
@@ -119,6 +120,8 @@ Recording state is authoritative in `AppState.recorder`:
 - `None` means recording is inactive.
 
 `toggle_recording` calls `start_recording` or `stop_recording`. Starting clears current recording histories, last summary, and loaded recording. Stopping finalizes the JSONL footer, stores the summary, and refreshes the catalog. Normal quit also finalizes an active recording.
+
+`toggle_record_scope` switches between the standard and deep capture scopes while idle. Deep capture must not collect without consent: enabling it arms `deep_capture_dialog` with `DeepCaptureIntent::Enable`, and starting a deep recording arms it with `DeepCaptureIntent::Start` until `confirm_deep_capture` records the session confirmation; `cancel_deep_capture` dismisses the dialog without collecting.
 
 `move_recording_selection` wraps around the catalog and clears stale `loaded_recording` when the selected entry changes. `load_selected_recording` reads the selected JSONL file explicitly.
 
@@ -134,6 +137,7 @@ Current controls:
 | `q`, Ctrl-C | Quit |
 | Space | Pause/resume application updates |
 | `s` | Start/stop recording |
+| `S` | Toggle deep capture (confirmation required before collecting) |
 | Up/Down, `k`/`j` | Select a saved recording on History |
 | Enter | Load the selected recording |
 | `R` | Reset live history |
@@ -150,7 +154,8 @@ Current controls:
 - `src/tui/screens/dashboard.rs` — live gauges, dynamic Storage panel, a 2x2 CPU/memory/network/disk sparkline grid, footer, help overlay;
 - `src/tui/screens/process_screen.rs` — process table and current filter label;
 - `src/tui/screens/alerts_screen.rs` — active/pending alert table;
-- `src/tui/screens/history_screen.rs` — saved recording catalog, status, and CPU/memory/network/disk charts.
+- `src/tui/screens/history_screen.rs` — saved recording catalog, status, and CPU/memory/network/disk charts;
+- `src/tui/screens/deep_capture_dialog.rs` — centered deep-capture warning and confirmation overlay, rendered above any screen.
 
 Reusable widgets are under `src/tui/widgets/`. Styles are centralized in `src/tui/theme.rs` as title, muted, gauge, warning, and critical styles resolved against the active palette. The palette is selected by `theme` in the config file or `--theme` on the command line and can be cycled at runtime with `t`; built-in palettes are dark, light, and mono.
 
@@ -183,12 +188,12 @@ The widget handles an empty list with `No disks detected`, though the Dashboard 
 `src/recording.rs` writes one JSON object per line:
 
 ```json
-{"type":"header","version":1,"started_at_ms":0}
+{"type":"header","version":1,"scope":"standard","started_at_ms":0}
 {"type":"sample","snapshot":{"timestamp":0}}
 {"type":"footer","stopped_at_ms":1000,"samples":1}
 ```
 
-Actual samples contain the complete `Snapshot`, including processes, disks, and networks. `Recorder::start` creates a unique `rstats-<epoch-milliseconds>.jsonl` path, writes and flushes the header, and initializes the count. `Recorder::record` writes and flushes every sample. `Recorder::finish` writes and flushes the footer.
+`Recorder::start` takes a `CaptureScope` (`standard` by default, `deep` opt-in), records it in the header, creates a unique `rstats-<epoch-milliseconds>.jsonl` path, writes and flushes the header, and initializes the count. Standard-scope samples carry every metric except the process table; deep-scope samples contain the complete `Snapshot`, including processes, disks, and networks. Legacy recordings without a `scope` field load with `scope: None`. `Recorder::record` writes and flushes every sample. `Recorder::finish` writes and flushes the footer.
 
 `RecordedSession::load` reads valid lines and extracts session metadata plus CPU, memory, swap, and load-average vectors, network receive/transmit rates, worst-disk usage, and per-sample timestamps. If valid sample records exist, their parsed count is authoritative; the footer count is only used when no valid samples were parsed. Invalid JSONL lines are skipped so interrupted files with valid lines remain loadable. `list_recordings` discovers `.jsonl` files and silently skips files that cannot be loaded.
 
@@ -222,7 +227,7 @@ Native package binaries are release artifacts. They are staged by `scripts/stage
 - `Config.no_color` and `Config.bell` are present but currently have no apparent runtime effect.
 - `/` maps to `Command::Filter`, but `handle_key` does not provide an input editor path.
 - Swap and load-average recording vectors are loaded but not visualized on the History screen.
-- Full snapshots make recordings potentially large, and `RecordedSession::load` reads the full file into memory.
+- Deep-scope recordings carry the full process table and grow roughly 100x faster than standard ones (~15 MB/min at 1 s intervals), and `RecordedSession::load` reads the full file into memory.
 - Live histories are bounded, but loaded chart vectors are not explicitly bounded.
 - The sampler thread is signaled but not joined, and terminal restoration is not panic-safe.
 - The alert count is displayed through a percentage-like gauge and clamps above 100.
