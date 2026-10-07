@@ -1,6 +1,8 @@
 /target/
 /recordings/
 /node_modules/
+/viewer/node_modules/
+/viewer/dist/
 /npm/rstats-cli-darwin-x64/bin/*
 /npm/rstats-cli-darwin-arm64/bin/*
 /npm/rstats-cli-linux-x64/bin/*

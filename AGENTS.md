@@ -39,6 +39,7 @@ Read this file before changing source code, tests, packaging, or workflows. It i
 - `src/tui/screens/` — Dashboard, Processes, Alerts, recording History, and the deep-capture dialog.
 - `src/tui/widgets/` — reusable header, overview, process, alert, sparkline, and Storage widgets.
 - `tests/` — integration tests for CLI, config, collector, domain, history, recording, state, and dashboard rendering.
+- `viewer/` — static recording viewer (Vite + TypeScript, client-side only).
 - `npm/` — launcher package and five platform package manifests.
 - `scripts/` — version sync, package validation, launcher tests, and release staging.
 - `.github/workflows/` — CI and tag-driven release automation.

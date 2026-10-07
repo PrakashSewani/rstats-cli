@@ -172,6 +172,15 @@ Recordings use the standard capture scope by default. Press `S` to toggle deep c
 
 Open screen `4` to browse saved sessions. Use Up/Down to select a file and Enter to load its CPU, memory, network, and disk charts directly inside the TUI. You do not need to open the JSONL file manually.
 
+## Web viewer
+
+Recordings can be explored with depth in the browser: zoom and pan the timeline, inspect per-core CPU, memory, load, network, and disk series, and — for deep captures — scrub through the recorded process table. Everything is processed locally in the browser; nothing is uploaded.
+
+- Local: `cd viewer && npm install && npm run dev`.
+- Hosted: `viewer/` deploys to GitHub Pages through `.github/workflows/pages.yml` once Pages uses GitHub Actions as its source.
+
+The landing page opens a recording (or a built-in demo) and hands it to the `/view` route. It accepts standard and deep `.jsonl` recordings plus `--export --format json` output.
+
 ## Contributing
 
 Bug reports and pull requests are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md) for contributor checks and the release workflow.

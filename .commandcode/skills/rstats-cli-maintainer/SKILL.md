@@ -29,6 +29,7 @@ metadata:
 | dashboard/TUI | `src/tui/layout.rs`, `src/tui/screens/`, `src/tui/widgets/`, `tests/dashboard.rs` |
 | alerts/history | `src/alerts/`, `src/history/`, `tests/domain.rs`, `tests/history.rs` |
 | npm/release | `package.json`, `npm/`, `scripts/`, `.github/workflows/`, `docs/DEVELOPMENT.md` |
+| viewer | `viewer/`, `viewer/src/lib/parse.ts`, `.github/workflows/pages.yml` |
 
 ## Invariants
 
@@ -36,6 +37,7 @@ metadata:
 - Keep `Snapshot.disks: Vec<DiskSnapshot>` dynamic for zero, one, and many drives. Storage indicators belong on the live Dashboard and must remain readable in narrow terminals.
 - `AppState.recorder.is_some()` is the authoritative active-recording state. `s` starts/stops recording; the UI shows an active marker and contextual action.
 - Deep capture is opt-in: recordings default to the `standard` scope. `S` toggles the scope and a deep recording must not collect until `confirm_deep_capture` runs.
+- The viewer is client-side only: never upload recordings or add backend calls under `viewer/`.
 - Only `KeyEventKind::Press` triggers commands. Ignore repeat and release events so toggles and navigation happen once.
 - Preserve JSONL header/sample/footer records, flush each sample, and prefer parsed valid sample counts over an untrusted footer count.
 - Bound live histories. Do not add unbounded event-loop state without a deliberate design.

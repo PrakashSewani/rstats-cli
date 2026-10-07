@@ -97,6 +97,21 @@ When adding a rendering feature, prefer Ratatui `TestBackend` buffer assertions 
 - Do not add comments unless the logic genuinely requires one.
 - Validate external boundaries, but do not add speculative fallbacks or compatibility shims.
 
+## Web viewer
+
+`viewer/` is a standalone static site; it is not part of the Rust or npm release pipelines.
+
+```sh
+cd viewer
+npm install
+npm run check      # TypeScript typecheck
+npm run build      # typecheck + production build (dist/)
+npm run dev        # local dev server at http://localhost:5173/rstats-cli/
+npm run demo       # regenerate the committed demo fixtures
+```
+
+CI builds it in the `viewer` job, and `.github/workflows/pages.yml` deploys `viewer/dist` to GitHub Pages on pushes to `main` that touch `viewer/` (once the repository's Pages source is set to GitHub Actions). Keep the viewer client-side only: it must never upload recordings or add backend calls.
+
 ## npm packages
 
 The root `package.json` is a private development workspace. `npm/rstats-cli/` is the publishable launcher. Five optional native packages contain platform-specific metadata and receive binaries during release staging:

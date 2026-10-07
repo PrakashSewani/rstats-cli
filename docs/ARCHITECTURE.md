@@ -20,6 +20,7 @@ src/recording.rs             JSONL recording (capture scopes) and catalog loadin
 src/series.rs                derived series helpers (network rates, disk usage)
 src/tui/                    terminal lifecycle, layout, screens, widgets
 tests/                      Rust integration coverage
+viewer/                     static web viewer for recordings (Vite + TypeScript)
 npm/                        launcher and native package manifests
 scripts/                    version, package, and release helpers
 .github/workflows/          CI and tagged release automation
@@ -202,6 +203,10 @@ Do not remove the header/sample/footer structure, per-sample flush behavior, or 
 ## Export and reports
 
 `src/export.rs` reuses `RecordedSession::load`. `--export` writes one row per sample to stdout or `--output FILE`: CSV by default, JSON rows with `--format json`. Columns are `timestamp_ms`, `cpu_total_pct`, `memory_used_pct`, `swap_used_pct`, `load_average`, `net_received_bps`, `net_transmitted_bps`, and `disk_max_used_pct`. The `load_average` cell is written only when the loaded load-average vector is aligned with the sample count. `--report` prints per-metric averages and peaks with peak time offsets from the first sample. Both modes reject recordings with no samples.
+
+## Web viewer
+
+`viewer/` is a self-contained static site (Vite + TypeScript + uPlot) that parses recordings and exports entirely client-side — no backend, no uploads. The landing page (`/`) opens a file or demo and routes to `/view`, which renders the aligned timeline charts and, when the recording is deep scope, the process explorer. The parser (`viewer/src/lib/parse.ts`) auto-detects JSONL recordings, export JSON rows, and single snapshots, and tolerates missing `processes` (standard scope) and a missing `scope` header field (legacy files). CI typechecks and builds it in the `viewer` job; `.github/workflows/pages.yml` deploys `viewer/dist` to GitHub Pages.
 
 ## Alerts
 
