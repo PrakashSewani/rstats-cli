@@ -1,5 +1,5 @@
 {
-  "name": "rstats-cli-win32-x64",
+  "name": "@prakashsewani/rstats-cli-win32-x64",
   "version": "0.2.0",
   "description": "Native rstats binary for Windows x64",
   "os": [

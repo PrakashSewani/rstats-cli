@@ -107,7 +107,7 @@ The root `package.json` is a private development workspace. `npm/rstats-cli/` is
 | `aarch64-apple-darwin` | `rstats-cli-darwin-arm64` | macOS arm64 |
 | `x86_64-unknown-linux-gnu` | `rstats-cli-linux-x64` | Linux x64 |
 | `aarch64-unknown-linux-gnu` | `rstats-cli-linux-arm64` | Linux arm64 |
-| `x86_64-pc-windows-msvc` | `rstats-cli-win32-x64` | Windows x64 |
+| `x86_64-pc-windows-msvc` | `@prakashsewani/rstats-cli-win32-x64` | Windows x64 |
 
 The launcher resolves the matching optional package and spawns its packaged executable. It must not download binaries during installation or execution, and it must not build shell command strings.
 

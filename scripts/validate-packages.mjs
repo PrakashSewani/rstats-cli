@@ -45,7 +45,7 @@ const packages = [
   },
   {
     directory: "npm/rstats-cli-win32-x64",
-    name: "rstats-cli-win32-x64",
+    name: "@prakashsewani/rstats-cli-win32-x64",
     binary: "bin/rstats.exe",
     os: "win32",
     cpu: "x64",

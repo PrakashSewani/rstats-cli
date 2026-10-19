@@ -13,7 +13,7 @@ test("launcher maps every supported npm platform", async () => {
     "rstats-cli-darwin-arm64",
     "rstats-cli-linux-x64",
     "rstats-cli-linux-arm64",
-    "rstats-cli-win32-x64"
+    "@prakashsewani/rstats-cli-win32-x64"
   ]) {
     assert.match(launcher, new RegExp(packageName));
   }

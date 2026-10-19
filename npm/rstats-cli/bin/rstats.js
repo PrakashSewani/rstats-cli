@@ -8,7 +8,7 @@ const packages = {
   "darwin-arm64": "rstats-cli-darwin-arm64",
   "linux-x64": "rstats-cli-linux-x64",
   "linux-arm64": "rstats-cli-linux-arm64",
-  "win32-x64": "rstats-cli-win32-x64"
+  "win32-x64": "@prakashsewani/rstats-cli-win32-x64"
 };
 
 const key = `${process.platform}-${process.arch}`;
