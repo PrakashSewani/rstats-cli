@@ -4,6 +4,16 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Build and stage every artifact, skip npm publish and the GitHub release"
+        type: boolean
+        default: true
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   validate:
@@ -22,7 +32,9 @@ jobs:
         shell: bash
         run: |
           version=$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -n 1)
-          test "v${version}" = "${GITHUB_REF_NAME}"
+          if [ "${GITHUB_EVENT_NAME}" = "push" ]; then
+            test "v${version}" = "${GITHUB_REF_NAME}"
+          fi
           node scripts/sync-version.mjs --check
           node scripts/validate-packages.mjs
       - run: cargo fmt --all -- --check
@@ -38,9 +50,9 @@ jobs:
       matrix:
         include:
           - target: x86_64-apple-darwin
-            runner: macos-13
+            runner: macos-15-intel
           - target: aarch64-apple-darwin
-            runner: macos-14
+            runner: macos-15
           - target: x86_64-unknown-linux-gnu
             runner: ubuntu-latest
           - target: aarch64-unknown-linux-gnu
@@ -107,6 +119,33 @@ jobs:
             (cd "${directory}" && npm pack --dry-run --json)
           done
           sha256sum dist/* > dist/SHA256SUMS
+      - name: Smoke-test the staged Linux binary
+        shell: bash
+        run: |
+          ./npm/rstats-cli-linux-x64/bin/rstats --version
+          ./npm/rstats-cli-linux-x64/bin/rstats --once
+          ./npm/rstats-cli-linux-x64/bin/rstats --once --json | node -e '
+            let input = "";
+            process.stdin.setEncoding("utf8");
+            process.stdin.on("data", (chunk) => (input += chunk));
+            process.stdin.on("end", () => {
+              const snapshot = JSON.parse(input);
+              if (!snapshot.cpu || !snapshot.memory) throw new Error("snapshot is missing cpu or memory");
+              console.log("snapshot ok");
+            });
+          '
+      - name: Install the packed tarballs into a clean project
+        shell: bash
+        run: |
+          project=$(mktemp -d)
+          (cd npm/rstats-cli && npm pack --pack-destination "${project}" >/dev/null)
+          (cd npm/rstats-cli-linux-x64 && npm pack --pack-destination "${project}" >/dev/null)
+          cd "${project}"
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund ./rstats-cli-linux-x64-*.tgz >/dev/null
+          npm install --no-audit --no-fund --omit=optional ./rstats-cli-*.tgz >/dev/null
+          ./node_modules/.bin/rstats --version
+          ./node_modules/.bin/rstats --once
       - uses: actions/upload-artifact@v4
         with:
           name: npm-staged
@@ -118,6 +157,7 @@ jobs:
 
   publish:
     needs: package
+    if: github.event_name == 'push' || inputs.dry_run == false
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -135,15 +175,33 @@ jobs:
         with:
           name: npm-staged
           path: .
-      - name: Publish platform packages
+      - name: Verify npm credentials
+        shell: bash
         run: |
-          npm publish ./npm/rstats-cli-darwin-x64 --access public --provenance
-          npm publish ./npm/rstats-cli-darwin-arm64 --access public --provenance
-          npm publish ./npm/rstats-cli-linux-x64 --access public --provenance
-          npm publish ./npm/rstats-cli-linux-arm64 --access public --provenance
-          npm publish ./npm/rstats-cli-win32-x64 --access public --provenance
-      - name: Publish main package
-        run: npm publish ./npm/rstats-cli --access public --provenance
+          if [ -z "${NODE_AUTH_TOKEN}" ]; then
+            echo "::error::The NPM_TOKEN repository secret is missing. Add an npm automation token before tagging a release."
+            exit 1
+          fi
+          npm whoami
+      - name: Publish packages
+        shell: bash
+        run: |
+          publish() {
+            local directory="$1"
+            local name
+            local version
+            name=$(node -p "require('./${directory}/package.json').name")
+            version=$(node -p "require('./${directory}/package.json').version")
+            if npm view "${name}@${version}" version >/dev/null 2>&1; then
+              echo "${name}@${version} is already published; skipping"
+            else
+              npm publish "./${directory}" --access public --provenance
+            fi
+          }
+          for directory in npm/rstats-cli-darwin-x64 npm/rstats-cli-darwin-arm64 npm/rstats-cli-linux-x64 npm/rstats-cli-linux-arm64 npm/rstats-cli-win32-x64; do
+            publish "${directory}"
+          done
+          publish npm/rstats-cli
 
   github-release:
     needs: publish
