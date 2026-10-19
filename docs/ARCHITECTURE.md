@@ -206,7 +206,7 @@ Do not remove the header/sample/footer structure, per-sample flush behavior, or 
 
 ## Web viewer
 
-`viewer/` is a self-contained static site (Vite + TypeScript + uPlot) that parses recordings and exports entirely client-side — no backend, no uploads. The landing page (`/`) opens a file or demo and routes to `/view`, which renders the aligned timeline charts and, when the recording is deep scope, the process explorer. The parser (`viewer/src/lib/parse.ts`) auto-detects JSONL recordings, export JSON rows, and single snapshots, and tolerates missing `processes` (standard scope) and a missing `scope` header field (legacy files). CI typechecks and builds it in the `viewer` job; `.github/workflows/pages.yml` deploys `viewer/dist` to GitHub Pages.
+`viewer/` is a self-contained static site (Vite + TypeScript + uPlot) that parses recordings and exports entirely client-side — no backend, no uploads. The landing page (`/`) opens a file or demo and routes to `/view`, which renders the aligned timeline charts and, when the recording is deep scope, the process explorer. The parser (`viewer/src/lib/parse.ts`) auto-detects JSONL recordings, export JSON rows, and single snapshots, and tolerates missing `processes` (standard scope) and a missing `scope` header field (legacy files). CI typechecks and builds it in the `viewer` job; the `rstats` Cloudflare Pages project deploys `viewer/dist` to https://rstats.prakashsewani.com.
 
 ## Alerts
 

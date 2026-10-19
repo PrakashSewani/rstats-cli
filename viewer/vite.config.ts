@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  base: "/rstats-cli/",
+  base: "/",
   build: {
     target: "es2022",
     outDir: "dist",

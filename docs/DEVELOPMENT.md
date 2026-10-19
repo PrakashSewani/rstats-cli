@@ -106,11 +106,11 @@ cd viewer
 npm install
 npm run check      # TypeScript typecheck
 npm run build      # typecheck + production build (dist/)
-npm run dev        # local dev server at http://localhost:5173/rstats-cli/
+npm run dev        # local dev server at http://localhost:5173/
 npm run demo       # regenerate the committed demo fixtures
 ```
 
-CI builds it in the `viewer` job, and `.github/workflows/pages.yml` deploys `viewer/dist` to GitHub Pages on pushes to `main` that touch `viewer/` (once the repository's Pages source is set to GitHub Actions). Keep the viewer client-side only: it must never upload recordings or add backend calls.
+CI builds it in the `viewer` job. The `rstats` Cloudflare Pages project deploys `viewer/dist` to https://rstats.prakashsewani.com on pushes to `main` that touch `viewer/`. Keep the viewer client-side only: it must never upload recordings or add backend calls.
 
 ## npm packages
 

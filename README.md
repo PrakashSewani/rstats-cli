@@ -177,7 +177,7 @@ Open screen `4` to browse saved sessions. Use Up/Down to select a file and Enter
 Recordings can be explored with depth in the browser: zoom and pan the timeline, inspect per-core CPU, memory, load, network, and disk series, and — for deep captures — scrub through the recorded process table. Everything is processed locally in the browser; nothing is uploaded.
 
 - Local: `cd viewer && npm install && npm run dev`.
-- Hosted: `viewer/` deploys to GitHub Pages through `.github/workflows/pages.yml` once Pages uses GitHub Actions as its source.
+- Hosted: `viewer/` deploys to Cloudflare Pages at https://rstats.prakashsewani.com.
 
 The landing page opens a recording (or a built-in demo) and hands it to the `/view` route. It accepts standard and deep `.jsonl` recordings plus `--export --format json` output.
 

@@ -16,7 +16,7 @@ Formats are auto-detected. Deep recordings (which include the process table) unl
 
 ```sh
 npm install
-npm run dev        # http://localhost:5173/rstats-cli/
+npm run dev        # http://localhost:5173/
 npm run check      # TypeScript typecheck
 npm run build      # typecheck + production build into dist/
 npm run preview    # serve the production build
@@ -43,11 +43,30 @@ src/
 public/demo/              deterministic demo fixtures (standard + deep)
 scripts/
   generate-demo.mjs       fixture generator (seeded, stable output)
-  postbuild.mjs           copies dist/index.html → dist/404.html (SPA fallback)
+  postbuild.mjs           writes dist/_redirects (SPA fallback)
 ```
 
 ## Deploy
 
-`.github/workflows/pages.yml` builds this directory and deploys `viewer/dist` to GitHub Pages on pushes to `main` that touch `viewer/`. The repository's Pages source must be set to **GitHub Actions**.
+The viewer is hosted on Cloudflare Pages at <https://rstats.prakashsewani.com>. It is not deployed to GitHub Pages.
 
-The site is served from the project path `/rstats-cli/`; `vite.config.ts` sets the matching `base`, and the router derives routes from `import.meta.env.BASE_URL`. A `404.html` fallback is emitted so deep links like `/rstats-cli/view` refresh correctly.
+Cloudflare Pages project settings:
+
+- Project: `rstats`
+- Root directory: `viewer`
+- Build command: `npm ci && npm run build`
+- Build output directory: `dist`
+- Production branch: `main`
+
+The project is connected to this repository, so pushes to `main` that touch `viewer/` deploy automatically. For a manual deploy from a logged-in Wrangler session:
+
+```sh
+cd viewer
+npm ci
+npm run build
+npx wrangler pages deploy dist --project-name rstats
+```
+
+Add `rstats.prakashsewani.com` under the Pages project's **Custom domains** settings. Because `prakashsewani.com` is already in the same Cloudflare account, Pages creates the DNS record automatically; otherwise add a proxied `CNAME` from `rstats` to `rstats.pages.dev`.
+
+`vite.config.ts` uses the root base `/`, and `postbuild.mjs` writes `_redirects` so deep links like `/view` refresh correctly.
