@@ -6,12 +6,11 @@ Read [AGENTS.md](AGENTS.md) before changing source code, tests, packaging, or wo
 
 - `src/` — Rust monitor, collector, recording, and TUI implementation
 - `tests/` — Rust integration tests
-- `npm/rstats-cli/` — publishable npm launcher package
-- `npm/rstats-cli-*/` — publishable platform-native package metadata
+- `npm/rstats-cli/` — publishable npm package with bundled native binaries
 - `scripts/` — version, staging, and package validation tools
 - `.github/workflows/` — CI and tagged release automation
 
-Native executables are generated during release staging. Do not commit files under `npm/*/bin/` or runtime data under `recordings/`.
+Native executables are generated during release staging. Do not commit files under `npm/rstats-cli/bin/rstats-*` or runtime data under `recordings/`.
 
 ## Local checks
 
@@ -48,7 +47,7 @@ npm run validate-packages
 (cd npm/rstats-cli && npm pack --dry-run --json)
 ```
 
-A release staging job copies each target binary into its matching package and then runs:
+A release staging job copies each target binary into `npm/rstats-cli/bin/` and then runs:
 
 ```sh
 node scripts/validate-packages.mjs --require-binaries
@@ -71,8 +70,8 @@ The tagged release workflow builds these targets:
 - `aarch64-unknown-linux-gnu`
 - `x86_64-pc-windows-msvc`
 
-It publishes platform packages before `rstats-cli`, creates checksums, and attaches native artifacts to the GitHub release. Publishing uses npm trusted publishing/OIDC once it is configured for the package names and repository; bootstrap releases authenticate with the `NPM_TOKEN` repository secret, since trusted publishing cannot create package names that do not exist yet.
+It stages all five binaries into `rstats-cli`, publishes that package, creates checksums, and attaches native artifacts to the GitHub release. Publishing uses npm trusted publishing/OIDC once it is configured for the package and repository; bootstrap releases authenticate with the `NPM_TOKEN` repository secret, since trusted publishing cannot create a package name that does not exist yet.
 
 ## Security
 
-Do not add install-time network downloads or shell-based command construction. The npm launcher must only resolve the matching optional dependency and spawn its packaged executable. Do not commit credentials, recordings, native binaries, or generated archives.
+Do not add install-time network downloads or shell-based command construction. The npm launcher must only select and spawn its bundled executable. Do not commit credentials, recordings, native binaries, or generated archives.

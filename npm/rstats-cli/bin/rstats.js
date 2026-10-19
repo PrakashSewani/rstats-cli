@@ -1,30 +1,29 @@
 #!/usr/bin/env node
 
 const { spawn } = require("node:child_process");
+const { existsSync } = require("node:fs");
 const path = require("node:path");
 
-const packages = {
-  "darwin-x64": "rstats-cli-darwin-x64",
-  "darwin-arm64": "rstats-cli-darwin-arm64",
-  "linux-x64": "rstats-cli-linux-x64",
-  "linux-arm64": "rstats-cli-linux-arm64",
-  "win32-x64": "@prakashsewani/rstats-cli-win32-x64"
+const binaries = {
+  "darwin-x64": "rstats-darwin-x64",
+  "darwin-arm64": "rstats-darwin-arm64",
+  "linux-x64": "rstats-linux-x64",
+  "linux-arm64": "rstats-linux-arm64",
+  "win32-x64": "rstats-win32-x64.exe"
 };
 
 const key = `${process.platform}-${process.arch}`;
-const packageName = packages[key];
+const binary = binaries[key];
 
-if (!packageName) {
+if (!binary) {
   console.error(`rstats-cli does not support ${process.platform}/${process.arch}.`);
   process.exit(1);
 }
 
-let executable;
-try {
-  executable = require.resolve(`${packageName}/bin/rstats${process.platform === "win32" ? ".exe" : ""}`);
-} catch {
-  console.error(`The native rstats binary for ${key} is not installed.`);
-  console.error(`Reinstall rstats-cli on a supported platform or install ${packageName} directly.`);
+const executable = path.join(__dirname, binary);
+if (!existsSync(executable)) {
+  console.error(`The bundled rstats binary for ${key} is missing.`);
+  console.error("Reinstall rstats-cli to restore it.");
   process.exit(1);
 }
 

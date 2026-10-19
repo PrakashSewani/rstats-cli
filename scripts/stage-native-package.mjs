@@ -10,17 +10,16 @@ if (!target || !artifact) {
   process.exit(1);
 }
 
-const packageDirectories = {
-  "x86_64-apple-darwin": "rstats-cli-darwin-x64",
-  "aarch64-apple-darwin": "rstats-cli-darwin-arm64",
-  "x86_64-unknown-linux-gnu": "rstats-cli-linux-x64",
-  "aarch64-unknown-linux-gnu": "rstats-cli-linux-arm64",
-  "x86_64-pc-windows-msvc": "rstats-cli-win32-x64"
+const binaryNames = {
+  "x86_64-apple-darwin": "rstats-darwin-x64",
+  "aarch64-apple-darwin": "rstats-darwin-arm64",
+  "x86_64-unknown-linux-gnu": "rstats-linux-x64",
+  "aarch64-unknown-linux-gnu": "rstats-linux-arm64",
+  "x86_64-pc-windows-msvc": "rstats-win32-x64.exe"
 };
-const directory = packageDirectories[target];
-if (!directory) throw new Error(`Unsupported release target: ${target}`);
-const executable = target.includes("windows") ? "rstats.exe" : "rstats";
-const destination = path.join(root, "npm", directory, "bin", executable);
+const binaryName = binaryNames[target];
+if (!binaryName) throw new Error(`Unsupported release target: ${target}`);
+const destination = path.join(root, "npm", "rstats-cli", "bin", binaryName);
 await mkdir(path.dirname(destination), { recursive: true });
 await copyFile(path.resolve(artifact), destination);
 if (!target.includes("windows")) await chmod(destination, 0o755);

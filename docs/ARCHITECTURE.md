@@ -204,14 +204,13 @@ Do not remove the header/sample/footer structure, per-sample flush behavior, or 
 
 ## npm distribution
 
-The npm layer contains:
+The npm layer contains a single publishable package:
 
-- `npm/rstats-cli/` — main launcher package;
-- five optional native packages for Darwin x64/arm64, Linux x64/arm64, and Windows x64.
+- `npm/rstats-cli/` — launcher package with bundled binaries for Darwin x64/arm64, Linux x64/arm64, and Windows x64.
 
-`npm/rstats-cli/bin/rstats.js` maps `process.platform` and `process.arch`, resolves the matching optional package executable, and spawns it with inherited stdio. It does not download binaries or construct shell commands.
+`npm/rstats-cli/bin/rstats.js` maps `process.platform` and `process.arch` to a bundled executable and spawns it with inherited stdio. It does not download binaries or construct shell commands.
 
-Native package binaries are release artifacts. They are staged by `scripts/stage-native-package.mjs` and must not be committed in normal source changes.
+Native binaries are release artifacts. They are staged into `npm/rstats-cli/bin/` by `scripts/stage-native-package.mjs` and must not be committed in normal source changes.
 
 ## Cross-platform caveats and known gaps
 
