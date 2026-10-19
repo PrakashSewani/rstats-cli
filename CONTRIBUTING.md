@@ -51,7 +51,7 @@ A release staging job copies each target binary into `npm/rstats-cli/bin/` and t
 
 ```sh
 node scripts/validate-packages.mjs --require-binaries
-(cd npm/rstats-cli && npm pack --dry-run --json)
+npm pack ./npm/rstats-cli --pack-destination dist
 ```
 
 ## Releases
@@ -70,7 +70,7 @@ The tagged release workflow builds these targets:
 - `aarch64-unknown-linux-gnu`
 - `x86_64-pc-windows-msvc`
 
-It stages all five binaries into `rstats-cli`, publishes that package, creates checksums, and attaches native artifacts to the GitHub release. Publishing uses npm trusted publishing/OIDC once it is configured for the package and repository; bootstrap releases authenticate with the `NPM_TOKEN` repository secret, since trusted publishing cannot create a package name that does not exist yet.
+It stages all five binaries into `rstats-cli`, packs the tarball, publishes it, creates checksums, and attaches native artifacts to the GitHub release. Publishing uses npm trusted publishing/OIDC once it is configured for the package and repository; bootstrap releases authenticate with the `NPM_TOKEN` repository secret, since trusted publishing cannot create a package name that does not exist yet.
 
 ## Security
 

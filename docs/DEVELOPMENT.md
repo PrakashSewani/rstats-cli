@@ -144,7 +144,7 @@ Then require all five native binaries:
 node scripts/validate-packages.mjs --require-binaries
 ```
 
-The release job dry-runs `npm pack --dry-run --json` for the launcher package and creates `dist/SHA256SUMS`.
+The release job packs the launcher tarball into `dist` and creates `dist/SHA256SUMS`.
 
 ## CI
 
@@ -174,8 +174,8 @@ Release sequence:
 4. Push the matching tag, for example `v0.2.0`.
 5. The validate job checks the tag/version and all quality checks.
 6. The build matrix produces five native targets; Linux arm64 uses `cross` 0.2.5.
-7. The package job stages all five binaries into `npm/rstats-cli`, validates with `--require-binaries`, dry-runs the package, and creates checksums.
-8. The publish job publishes `rstats-cli` with provenance. The first release authenticates with the `NPM_TOKEN` repository secret, because trusted publishing cannot create a package name that does not exist yet; once trusted publishing is configured for `rstats-cli`, OIDC takes over and the secret can be removed.
+7. The package job stages all five binaries into `npm/rstats-cli`, validates with `--require-binaries`, packs the launcher tarball, and creates checksums.
+8. The publish job publishes the packed `rstats-cli` tarball with provenance. The first release authenticates with the `NPM_TOKEN` repository secret, because trusted publishing cannot create a package name that does not exist yet; once trusted publishing is configured for `rstats-cli`, OIDC takes over and the secret can be removed.
 9. The GitHub release job attaches native binaries and checksums.
 
 Do not push a tag until `npm run check-version` passes and the tag exactly matches the Cargo version.
