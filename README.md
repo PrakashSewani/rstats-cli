@@ -20,7 +20,7 @@ Or run it without a global install:
 npx rstats-cli --monitor
 ```
 
-The npm package installs only the optional native package matching the current operating system and CPU architecture. It does not download binaries during installation or execution.
+The npm package bundles native binaries for every supported platform and runs the one matching the current operating system and CPU architecture. It does not download binaries during installation or execution.
 
 Supported npm targets:
 
@@ -208,7 +208,7 @@ npm run check-version
 npm run validate-packages
 ```
 
-Create a version tag such as `v0.2.0` after the Rust and npm versions match. The release workflow builds native binaries for all supported targets, stages the five platform packages, validates `npm pack` contents, publishes platform packages first, and publishes `rstats-cli` last. Native binaries and runtime recordings are generated artifacts and are not committed to the repository.
+Create a version tag such as `v0.2.0` after the Rust and npm versions match. The release workflow builds native binaries for all supported targets, stages them into the `rstats-cli` package, validates `npm pack` contents, publishes `rstats-cli`, and attaches the native artifacts to the GitHub release. Native binaries and runtime recordings are generated artifacts and are not committed to the repository.
 
 ## License
 

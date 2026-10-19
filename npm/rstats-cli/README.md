@@ -29,6 +29,6 @@ rstats --open-recordings
 
 Pick a color theme with `--theme dark|light|mono`, or press `t` while the monitor runs to cycle themes live.
 
-The package installs one optional native package matching your operating system and CPU architecture. It does not download binaries during installation or execution.
+The package bundles native binaries for every supported platform and runs the one matching your operating system and CPU architecture. It does not download binaries during installation or execution. The package is larger because it includes every platform binary.
 
 Supported targets are macOS x64/arm64, Linux x64/arm64, and Windows x64. Linux requires `xdg-open` for `--open-recordings`.

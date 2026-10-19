@@ -106,7 +106,7 @@ jobs:
           pattern: rstats-*
           path: dist
           merge-multiple: true
-      - name: Stage npm platform packages
+      - name: Stage bundled native binaries
         shell: bash
         run: |
           node scripts/stage-native-package.mjs x86_64-apple-darwin dist/rstats-x86_64-apple-darwin
@@ -115,16 +115,14 @@ jobs:
           node scripts/stage-native-package.mjs aarch64-unknown-linux-gnu dist/rstats-aarch64-unknown-linux-gnu
           node scripts/stage-native-package.mjs x86_64-pc-windows-msvc dist/rstats-x86_64-pc-windows-msvc.exe
           node scripts/validate-packages.mjs --require-binaries
-          for directory in npm/rstats-cli npm/rstats-cli-darwin-x64 npm/rstats-cli-darwin-arm64 npm/rstats-cli-linux-x64 npm/rstats-cli-linux-arm64 npm/rstats-cli-win32-x64; do
-            (cd "${directory}" && npm pack --dry-run --json)
-          done
+          npm pack ./npm/rstats-cli --pack-destination dist
           sha256sum dist/* > dist/SHA256SUMS
       - name: Smoke-test the staged Linux binary
         shell: bash
         run: |
-          ./npm/rstats-cli-linux-x64/bin/rstats --version
-          ./npm/rstats-cli-linux-x64/bin/rstats --once
-          ./npm/rstats-cli-linux-x64/bin/rstats --once --json | node -e '
+          ./npm/rstats-cli/bin/rstats-linux-x64 --version
+          ./npm/rstats-cli/bin/rstats-linux-x64 --once
+          ./npm/rstats-cli/bin/rstats-linux-x64 --once --json | node -e '
             let input = "";
             process.stdin.setEncoding("utf8");
             process.stdin.on("data", (chunk) => (input += chunk));
@@ -134,22 +132,15 @@ jobs:
               console.log("snapshot ok");
             });
           '
-      - name: Install the packed tarballs into a clean project
+      - name: Install the packed tarball into a clean project
         shell: bash
         run: |
           project=$(mktemp -d)
-          (cd npm/rstats-cli && npm pack --pack-destination "${project}" >/dev/null)
-          (cd npm/rstats-cli-linux-x64 && npm pack --pack-destination "${project}" >/dev/null)
           cd "${project}"
           npm init -y >/dev/null
-          npm install --no-audit --no-fund ./rstats-cli-linux-x64-*.tgz >/dev/null
-          npm install --no-audit --no-fund --omit=optional ./rstats-cli-*.tgz >/dev/null
+          npm install --no-audit --no-fund "${GITHUB_WORKSPACE}"/dist/rstats-cli-*.tgz >/dev/null
           ./node_modules/.bin/rstats --version
           ./node_modules/.bin/rstats --once
-      - uses: actions/upload-artifact@v4
-        with:
-          name: npm-staged
-          path: npm
       - uses: actions/upload-artifact@v4
         with:
           name: release-assets
@@ -162,7 +153,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    # Bootstrap auth until npm trusted publishing is configured for every package name.
+    # Bootstrap auth until npm trusted publishing is configured for rstats-cli.
     env:
       NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
@@ -173,8 +164,8 @@ jobs:
           registry-url: https://registry.npmjs.org
       - uses: actions/download-artifact@v4
         with:
-          name: npm-staged
-          path: .
+          name: release-assets
+          path: dist
       - name: Verify npm credentials
         shell: bash
         run: |
@@ -183,25 +174,15 @@ jobs:
             exit 1
           fi
           npm whoami
-      - name: Publish packages
+      - name: Publish package
         shell: bash
         run: |
-          publish() {
-            local directory="$1"
-            local name
-            local version
-            name=$(node -p "require('./${directory}/package.json').name")
-            version=$(node -p "require('./${directory}/package.json').version")
-            if npm view "${name}@${version}" version >/dev/null 2>&1; then
-              echo "${name}@${version} is already published; skipping"
-            else
-              npm publish "./${directory}" --access public --provenance
-            fi
-          }
-          for directory in npm/rstats-cli-darwin-x64 npm/rstats-cli-darwin-arm64 npm/rstats-cli-linux-x64 npm/rstats-cli-linux-arm64 npm/rstats-cli-win32-x64; do
-            publish "${directory}"
-          done
-          publish npm/rstats-cli
+          version=$(node -p "require('./npm/rstats-cli/package.json').version")
+          if npm view "rstats-cli@${version}" version >/dev/null 2>&1; then
+            echo "rstats-cli@${version} is already published; skipping"
+          else
+            npm publish ./dist/rstats-cli-*.tgz --access public --provenance
+          fi
 
   github-release:
     needs: publish

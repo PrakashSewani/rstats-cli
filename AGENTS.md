@@ -4,7 +4,7 @@ Read this file before changing source code, tests, packaging, or workflows. It i
 
 ## Project identity
 
-`rstats-cli` is a Rust 2021 cross-platform terminal system monitor named `rstats`, distributed directly as a native binary and through an npm launcher with optional platform-specific native packages.
+`rstats-cli` is a Rust 2021 cross-platform terminal system monitor named `rstats`, distributed directly as a native binary and through a single npm package with bundled platform binaries.
 
 - Rust minimum: `1.75`
 - UI: Ratatui + Crossterm
@@ -39,7 +39,7 @@ Read this file before changing source code, tests, packaging, or workflows. It i
 - `src/tui/screens/` — Dashboard, Processes, Alerts, and recording History screens.
 - `src/tui/widgets/` — reusable header, overview, process, alert, sparkline, and Storage widgets.
 - `tests/` — integration tests for CLI, config, collector, domain, history, recording, state, and dashboard rendering.
-- `npm/` — launcher package and five platform package manifests.
+- `npm/` — publishable launcher package with bundled native binaries.
 - `scripts/` — version sync, package validation, launcher tests, and release staging.
 - `.github/workflows/` — CI and tag-driven release automation.
 
@@ -59,8 +59,8 @@ SysinfoCollector
 
 ## Non-negotiable invariants
 
-- Treat `Cargo.toml` as the authoritative version source and keep npm manifests synchronized.
-- Do not commit `target/`, runtime `recordings/`, native package binaries, `dist/`, release archives, or credentials.
+- Treat `Cargo.toml` as the authoritative version source and keep the npm launcher manifest synchronized.
+- Do not commit `target/`, runtime `recordings/`, bundled native binaries, `dist/`, release archives, or credentials.
 - Keep recording files JSONL and flush samples as they are written; interrupted files with valid sample lines should remain loadable.
 - Preserve header/sample/footer recording records and do not trust a footer count over parsed sample records when valid samples exist.
 - Only key presses trigger commands. Repeat/release events must not toggle recording or move selections.
