@@ -1,7 +1,11 @@
 name: Unpublish legacy npm packages
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - release/scoped-win32-package
+    paths:
+      - .github/workflows/unpublish-legacy-npm-packages.yml
 
 permissions:
   contents: read
