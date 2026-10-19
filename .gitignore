@@ -3,11 +3,8 @@
 /node_modules/
 /viewer/node_modules/
 /viewer/dist/
-/npm/rstats-cli-darwin-x64/bin/*
-/npm/rstats-cli-darwin-arm64/bin/*
-/npm/rstats-cli-linux-x64/bin/*
-/npm/rstats-cli-linux-arm64/bin/*
-/npm/rstats-cli-win32-x64/bin/*
+/npm/rstats-cli/bin/rstats-*
+/.wrangler/
 /npm-staging/
 /dist/
 /release/

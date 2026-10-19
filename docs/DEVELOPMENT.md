@@ -114,17 +114,17 @@ CI builds it in the `viewer` job, and `.github/workflows/pages.yml` deploys `vie
 
 ## npm packages
 
-The root `package.json` is a private development workspace. `npm/rstats-cli/` is the publishable launcher. Five optional native packages contain platform-specific metadata and receive binaries during release staging:
+The root `package.json` is a private development workspace. `npm/rstats-cli/` is the single publishable package. It bundles a native binary for every supported target, and the launcher selects the binary from `process.platform` and `process.arch`:
 
-| Rust target | npm package | Runtime |
+| Rust target | Bundled binary | Runtime |
 | --- | --- | --- |
-| `x86_64-apple-darwin` | `rstats-cli-darwin-x64` | macOS x64 |
-| `aarch64-apple-darwin` | `rstats-cli-darwin-arm64` | macOS arm64 |
-| `x86_64-unknown-linux-gnu` | `rstats-cli-linux-x64` | Linux x64 |
-| `aarch64-unknown-linux-gnu` | `rstats-cli-linux-arm64` | Linux arm64 |
-| `x86_64-pc-windows-msvc` | `rstats-cli-win32-x64` | Windows x64 |
+| `x86_64-apple-darwin` | `bin/rstats-darwin-x64` | macOS x64 |
+| `aarch64-apple-darwin` | `bin/rstats-darwin-arm64` | macOS arm64 |
+| `x86_64-unknown-linux-gnu` | `bin/rstats-linux-x64` | Linux x64 |
+| `aarch64-unknown-linux-gnu` | `bin/rstats-linux-arm64` | Linux arm64 |
+| `x86_64-pc-windows-msvc` | `bin/rstats-win32-x64.exe` | Windows x64 |
 
-The launcher resolves the matching optional package and spawns its packaged executable. It must not download binaries during installation or execution, and it must not build shell command strings.
+The launcher spawns the bundled executable directly. It must not download binaries during installation or execution, and it must not build shell command strings. Bundling every target makes the package larger, but keeps installation deterministic and offline.
 
 ## Version synchronization
 
@@ -135,7 +135,7 @@ npm run sync-version
 npm run check-version
 ```
 
-The sync script updates the root package, the main launcher, all five native manifests, and optional dependency versions. `npm run check-version` must pass before a release or pull request.
+The sync script updates the root package and the npm launcher manifest. `npm run check-version` must pass before a release or pull request.
 
 ## Package validation and staging
 
@@ -145,21 +145,21 @@ Validate source package metadata without requiring native binaries:
 npm run validate-packages
 ```
 
-The validator checks all six package manifests, names, versions, optional dependencies, exact `files` allowlists, binary mappings, OS/CPU restrictions, and required source files.
+The validator checks the `rstats-cli` manifest, package name, exact `files` allowlist, binary mapping, publish access, and required source files. It also rejects optional dependencies.
 
-Release staging maps target binaries with:
+Release staging maps target binaries into the launcher package with:
 
 ```sh
 node scripts/stage-native-package.mjs <rust-target> <binary-path>
 ```
 
-Then require all native binaries:
+Then require all five native binaries:
 
 ```sh
 node scripts/validate-packages.mjs --require-binaries
 ```
 
-The release job dry-runs `npm pack --dry-run --json` for every package and creates `dist/SHA256SUMS`.
+The release job packs the launcher tarball into `dist` and creates `dist/SHA256SUMS`.
 
 ## CI
 
@@ -189,8 +189,8 @@ Release sequence:
 4. Push the matching tag, for example `v0.2.0`.
 5. The validate job checks the tag/version and all quality checks.
 6. The build matrix produces five native targets; Linux arm64 uses `cross` 0.2.5.
-7. The package job stages binaries, validates with `--require-binaries`, dry-runs packages, and creates checksums.
-8. The publish job publishes platform packages first, then `rstats-cli`, with provenance. The first releases authenticate with the `NPM_TOKEN` repository secret, because trusted publishing cannot create package names that do not exist yet; once trusted publishing is configured for all six names, OIDC takes over and the secret can be removed.
+7. The package job stages all five binaries into `npm/rstats-cli`, validates with `--require-binaries`, packs the launcher tarball, and creates checksums.
+8. The publish job publishes the packed `rstats-cli` tarball with provenance. The first release authenticates with the `NPM_TOKEN` repository secret, because trusted publishing cannot create a package name that does not exist yet; once trusted publishing is configured for `rstats-cli`, OIDC takes over and the secret can be removed.
 9. The GitHub release job attaches native binaries and checksums.
 
 Do not push a tag until `npm run check-version` passes and the tag exactly matches the Cargo version.
@@ -211,7 +211,7 @@ The `.gitignore` contains the repository’s authoritative ignore patterns. Runt
 
 - Changing Cargo’s version without syncing npm manifests causes CI/release failure.
 - The default recording directory depends on the process working directory.
-- Optional native npm dependencies may be omitted by a package manager; the launcher does not download a fallback binary.
+- The published `rstats-cli` package bundles every platform binary, so its tarball is larger than a single-platform package.
 - Windows supports only x64 in the npm distribution and needs the MSVC linker for local builds.
 - Linux arm64 is cross-built with `cross`, not ordinary host Cargo.
 - `--open-recordings` requires a desktop file opener.

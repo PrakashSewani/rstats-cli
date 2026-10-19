@@ -6,17 +6,21 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-test("launcher maps every supported npm platform", async () => {
+test("launcher maps every supported bundled binary", async () => {
   const launcher = await readFile(path.join(root, "npm/rstats-cli/bin/rstats.js"), "utf8");
-  for (const packageName of [
-    "rstats-cli-darwin-x64",
-    "rstats-cli-darwin-arm64",
-    "rstats-cli-linux-x64",
-    "rstats-cli-linux-arm64",
-    "rstats-cli-win32-x64"
-  ]) {
-    assert.match(launcher, new RegExp(packageName));
+  for (const key of ["darwin-x64", "darwin-arm64", "linux-x64", "linux-arm64", "win32-x64"]) {
+    assert.match(launcher, new RegExp(key));
   }
+  for (const binary of [
+    "rstats-darwin-x64",
+    "rstats-darwin-arm64",
+    "rstats-linux-x64",
+    "rstats-linux-arm64",
+    "rstats-win32-x64.exe"
+  ]) {
+    assert.match(launcher, new RegExp(binary.replace(".", "\\.")));
+  }
+  assert.match(launcher, /path\.join\(__dirname, binary\)/);
   assert.match(launcher, /stdio: "inherit"/);
   assert.doesNotMatch(launcher, /curl|wget|npm install|exec\(/);
 });

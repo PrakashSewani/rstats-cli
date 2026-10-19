@@ -8,15 +8,13 @@
   "engines": {
     "node": ">=18"
   },
-  "optionalDependencies": {
-    "rstats-cli-darwin-x64": "0.2.0",
-    "rstats-cli-darwin-arm64": "0.2.0",
-    "rstats-cli-linux-x64": "0.2.0",
-    "rstats-cli-linux-arm64": "0.2.0",
-    "rstats-cli-win32-x64": "0.2.0"
-  },
   "files": [
     "bin/rstats.js",
+    "bin/rstats-darwin-x64",
+    "bin/rstats-darwin-arm64",
+    "bin/rstats-linux-x64",
+    "bin/rstats-linux-arm64",
+    "bin/rstats-win32-x64.exe",
     "README.md",
     "LICENSE"
   ],
