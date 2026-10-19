@@ -1,0 +1,35 @@
+name: Unpublish legacy npm packages
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unpublish:
+    runs-on: ubuntu-latest
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+      - name: Unpublish legacy platform packages
+        shell: bash
+        run: |
+          for package in rstats-cli-darwin-x64 rstats-cli-darwin-arm64 rstats-cli-linux-x64 rstats-cli-linux-arm64; do
+            echo "Unpublishing ${package}"
+            npm unpublish "${package}" --force || true
+          done
+      - name: Verify removal
+        shell: bash
+        run: |
+          for package in rstats-cli-darwin-x64 rstats-cli-darwin-arm64 rstats-cli-linux-x64 rstats-cli-linux-arm64; do
+            if npm view "${package}" version >/dev/null 2>&1; then
+              echo "::error::${package} is still published"
+              npm view "${package}" versions --json
+              exit 1
+            fi
+          done
