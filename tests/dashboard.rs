@@ -1,9 +1,10 @@
 use ratatui::{backend::TestBackend, Terminal};
 use rstats::{
-    app::AppState,
+    app::{AppState, DeepCaptureIntent},
     config::Config,
     model::{DiskSnapshot, Snapshot},
-    tui::screens::render_dashboard,
+    recording::CaptureScope,
+    tui::screens::{render_dashboard, render_deep_capture_dialog},
 };
 use std::time::Duration;
 
@@ -16,6 +17,7 @@ fn config() -> Config {
         bell: false,
         theme: Default::default(),
         alerts: Vec::new(),
+        record_scope: CaptureScope::Standard,
     }
 }
 
@@ -100,4 +102,23 @@ fn dashboard_renders_all_history_tiles() {
     assert!(output.contains("Memory %"));
     assert!(output.contains("Net I/O /s"));
     assert!(output.contains("Disk %"));
+}
+
+#[test]
+fn deep_capture_dialog_renders_warning_and_keys() {
+    let backend = TestBackend::new(100, 30);
+    let mut terminal = Terminal::new(backend).unwrap();
+    terminal.draw(|frame| render_deep_capture_dialog(frame, DeepCaptureIntent::Enable)).unwrap();
+    let output = terminal.backend().to_string();
+    assert!(output.contains("Deep capture"));
+    assert!(output.contains("process table"));
+    assert!(output.contains("100x"));
+    assert!(output.contains("[y] enable deep capture"));
+}
+
+#[test]
+fn deep_capture_dialog_renders_on_small_terminals() {
+    let backend = TestBackend::new(24, 6);
+    let mut terminal = Terminal::new(backend).unwrap();
+    terminal.draw(|frame| render_deep_capture_dialog(frame, DeepCaptureIntent::Start)).unwrap();
 }

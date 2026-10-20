@@ -14,6 +14,7 @@ pub struct Snapshot {
     pub load_average: Option<f64>,
     pub disks: Vec<DiskSnapshot>,
     pub networks: Vec<NetworkSnapshot>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub processes: Vec<ProcessSnapshot>,
 }
 

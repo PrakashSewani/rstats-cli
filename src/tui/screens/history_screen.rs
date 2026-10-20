@@ -6,6 +6,7 @@ use ratatui::{
 use crate::{
     app::AppState,
     model::MetricKind,
+    recording::CaptureScope,
     tui::{
         theme,
         widgets::{percent_values, rate_values, render_header},
@@ -32,7 +33,8 @@ pub fn render_history_screen(frame: &mut Frame, state: &AppState) {
             .map(|session| {
                 let name =
                     session.path.file_name().and_then(|name| name.to_str()).unwrap_or("recording");
-                ListItem::new(format!("{name}  ({} samples)", session.samples))
+                let scope = if session.scope == Some(CaptureScope::Deep) { " · deep" } else { "" };
+                ListItem::new(format!("{name}  ({} samples){scope}", session.samples))
             })
             .collect()
     };
@@ -55,7 +57,8 @@ pub fn render_history_screen(frame: &mut Frame, state: &AppState) {
     };
     let status = if let Some(recorder) = state.recorder.as_ref() {
         format!(
-            "Recording now\n{}\nSamples: {}",
+            "Recording now · {}\n{}\nSamples: {}",
+            state.record_scope,
             recorder.path().display(),
             recorder.sample_count()
         )
@@ -166,7 +169,11 @@ pub fn render_history_screen(frame: &mut Frame, state: &AppState) {
     let footer = if let Some(error) = state.recording_error.as_deref() {
         error.to_owned()
     } else {
-        format!("Up/Down select | Enter load | {} | 1 dashboard | q quit", state.recording_action())
+        format!(
+            "Up/Down select | Enter load | {} | S scope: {} | 1 dashboard | q quit",
+            state.recording_action(),
+            state.record_scope
+        )
     };
     frame.render_widget(Paragraph::new(footer).style(theme::muted()), chunks[2]);
 }

@@ -1,7 +1,10 @@
 /target/
 /recordings/
 /node_modules/
+/viewer/node_modules/
+/viewer/dist/
 /npm/rstats-cli/bin/rstats-*
+/.wrangler/
 /npm-staging/
 /dist/
 /release/

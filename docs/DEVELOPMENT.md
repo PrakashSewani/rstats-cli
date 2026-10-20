@@ -97,6 +97,21 @@ When adding a rendering feature, prefer Ratatui `TestBackend` buffer assertions 
 - Do not add comments unless the logic genuinely requires one.
 - Validate external boundaries, but do not add speculative fallbacks or compatibility shims.
 
+## Web viewer
+
+`viewer/` is a standalone static site; it is not part of the Rust or npm release pipelines.
+
+```sh
+cd viewer
+npm install
+npm run check      # TypeScript typecheck
+npm run build      # typecheck + production build (dist/)
+npm run dev        # local dev server at http://localhost:5173/
+npm run demo       # regenerate the committed demo fixtures
+```
+
+CI builds it in the `viewer` job. The `rstats` Cloudflare Pages project deploys `viewer/dist` to https://rstats.prakashsewani.com on pushes to `main` that touch `viewer/`. Keep the viewer client-side only: it must never upload recordings or add backend calls.
+
 ## npm packages
 
 The root `package.json` is a private development workspace. `npm/rstats-cli/` is the single publishable package. It bundles a native binary for every supported target, and the launcher selects the binary from `process.platform` and `process.arch`:

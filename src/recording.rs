@@ -1,20 +1,40 @@
 use anyhow::{Context, Result};
-use serde::{Deserialize, Serialize};
 use std::{
+    fmt,
     fs::{create_dir_all, File, OpenOptions},
     io::{BufWriter, Write},
     path::{Path, PathBuf},
     time::{SystemTime, UNIX_EPOCH},
 };
 
+use serde::{Deserialize, Serialize};
+
 use crate::{
     model::{NetworkSnapshot, Snapshot},
     series::{max_disk_used_percent, net_rates},
 };
 
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CaptureScope {
+    #[default]
+    Standard,
+    Deep,
+}
+
+impl fmt::Display for CaptureScope {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            CaptureScope::Standard => "standard",
+            CaptureScope::Deep => "deep",
+        })
+    }
+}
+
 pub struct Recorder {
     path: PathBuf,
     writer: BufWriter<File>,
+    scope: CaptureScope,
     sample_count: u64,
     started_at: SystemTime,
 }
@@ -22,13 +42,13 @@ pub struct Recorder {
 #[derive(Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 enum Record<'a> {
-    Header { version: u8, started_at_ms: u64 },
+    Header { version: u8, scope: CaptureScope, started_at_ms: u64 },
     Sample { snapshot: &'a Snapshot },
     Footer { stopped_at_ms: u64, samples: u64 },
 }
 
 impl Recorder {
-    pub fn start(directory: &Path) -> Result<Self> {
+    pub fn start(directory: &Path, scope: CaptureScope) -> Result<Self> {
         create_dir_all(directory).with_context(|| {
             format!("failed to create recording directory {}", directory.display())
         })?;
@@ -39,16 +59,24 @@ impl Recorder {
             .write(true)
             .open(&path)
             .with_context(|| format!("failed to create recording file {}", path.display()))?;
-        let mut recorder = Self { path, writer: BufWriter::new(file), sample_count: 0, started_at };
+        let mut recorder =
+            Self { path, writer: BufWriter::new(file), scope, sample_count: 0, started_at };
         recorder.write_record(&Record::Header {
             version: 1,
+            scope,
             started_at_ms: timestamp_ms(started_at),
         })?;
         Ok(recorder)
     }
 
     pub fn record(&mut self, snapshot: &Snapshot) -> Result<()> {
-        self.write_record(&Record::Sample { snapshot })?;
+        match self.scope {
+            CaptureScope::Deep => self.write_record(&Record::Sample { snapshot })?,
+            CaptureScope::Standard => {
+                let sample = without_processes(snapshot);
+                self.write_record(&Record::Sample { snapshot: &sample })?;
+            }
+        }
         self.sample_count += 1;
         Ok(())
     }
@@ -98,6 +126,7 @@ pub struct RecordedSession {
     pub path: PathBuf,
     pub started_at: Option<SystemTime>,
     pub stopped_at: Option<SystemTime>,
+    pub scope: Option<CaptureScope>,
     pub samples: u64,
     pub timestamps: Vec<u64>,
     pub cpu: Vec<f64>,
@@ -112,9 +141,18 @@ pub struct RecordedSession {
 #[derive(Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 enum StoredRecord {
-    Header { started_at_ms: u64 },
-    Sample { snapshot: Box<Snapshot> },
-    Footer { stopped_at_ms: u64, samples: u64 },
+    Header {
+        started_at_ms: u64,
+        #[serde(default)]
+        scope: Option<CaptureScope>,
+    },
+    Sample {
+        snapshot: Box<Snapshot>,
+    },
+    Footer {
+        stopped_at_ms: u64,
+        samples: u64,
+    },
 }
 
 impl RecordedSession {
@@ -125,6 +163,7 @@ impl RecordedSession {
             path: path.to_path_buf(),
             started_at: None,
             stopped_at: None,
+            scope: None,
             samples: 0,
             timestamps: Vec::new(),
             cpu: Vec::new(),
@@ -141,8 +180,9 @@ impl RecordedSession {
                 continue;
             };
             match record {
-                StoredRecord::Header { started_at_ms } => {
+                StoredRecord::Header { started_at_ms, scope } => {
                     session.started_at = Some(from_timestamp_ms(started_at_ms));
+                    session.scope = scope;
                 }
                 StoredRecord::Sample { snapshot } => {
                     session.timestamps.push(timestamp_ms(snapshot.timestamp));
@@ -210,6 +250,22 @@ impl RecordingSummary {
     }
 }
 
+fn without_processes(snapshot: &Snapshot) -> Snapshot {
+    Snapshot {
+        timestamp: snapshot.timestamp,
+        hostname: snapshot.hostname.clone(),
+        os: snapshot.os.clone(),
+        uptime_secs: snapshot.uptime_secs,
+        cpu: snapshot.cpu.clone(),
+        memory: snapshot.memory.clone(),
+        swap: snapshot.swap.clone(),
+        load_average: snapshot.load_average,
+        disks: snapshot.disks.clone(),
+        networks: snapshot.networks.clone(),
+        processes: Vec::new(),
+    }
+}
+
 fn unique_path(directory: &Path, started_at: SystemTime) -> PathBuf {
     let stem = format!("rstats-{}", timestamp_ms(started_at));
     let first = directory.join(format!("{stem}.jsonl"));
@@ -242,7 +298,7 @@ mod tests {
     #[test]
     fn writes_header_samples_and_footer_as_jsonl() {
         let directory = tempdir().unwrap();
-        let mut recorder = Recorder::start(directory.path()).unwrap();
+        let mut recorder = Recorder::start(directory.path(), CaptureScope::Deep).unwrap();
         recorder.record(&Snapshot::default()).unwrap();
         let summary = recorder.finish().unwrap();
         let lines = std::fs::read_to_string(summary.path).unwrap();
@@ -250,6 +306,7 @@ mod tests {
             lines.lines().map(|line| serde_json::from_str(line).unwrap()).collect();
         assert_eq!(records.len(), 3);
         assert_eq!(records[0]["type"], "header");
+        assert_eq!(records[0]["scope"], "deep");
         assert_eq!(records[1]["type"], "sample");
         assert_eq!(records[2]["type"], "footer");
         assert_eq!(records[2]["samples"], 1);

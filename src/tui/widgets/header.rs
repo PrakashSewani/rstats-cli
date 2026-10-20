@@ -1,4 +1,4 @@
-use crate::{app::AppState, tui::theme};
+use crate::{app::AppState, recording::CaptureScope, tui::theme};
 use ratatui::{
     prelude::*,
     widgets::{Block, Borders, Paragraph},
@@ -9,7 +9,8 @@ pub fn render_header(frame: &mut Frame, area: Rect, state: &AppState) {
     let os = state.snapshot.os.as_deref().unwrap_or("unknown OS");
     let status = if state.paused { "PAUSED" } else { "LIVE" };
     let recording = state.recorder.as_ref().map_or_else(String::new, |recorder| {
-        format!("  REC [{} samples]", recorder.sample_count())
+        let scope = if state.record_scope == CaptureScope::Deep { " · deep" } else { "" };
+        format!("  REC [{} samples{scope}]", recorder.sample_count())
     });
     let error = state.collector_error.as_deref().unwrap_or("");
     let text = format!(

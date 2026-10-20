@@ -1,6 +1,6 @@
 use anyhow::Result;
 use crossbeam_channel::{bounded, Receiver, Sender};
-use crossterm::event::{self, Event, KeyEvent};
+use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::Terminal;
 use std::{io::Stdout, thread, time::Duration};
 
@@ -14,7 +14,8 @@ use crate::{
     config::Config,
     tui::{
         screens::{
-            render_alert_screen, render_dashboard, render_history_screen, render_process_screen,
+            render_alert_screen, render_dashboard, render_deep_capture_dialog,
+            render_history_screen, render_process_screen,
         },
         terminal, theme,
     },
@@ -76,11 +77,16 @@ fn run_loop(
                 AppEvent::CollectorError(error) => state.collector_error = Some(error),
             }
         }
-        terminal.draw(|frame| match state.screen {
-            Screen::Dashboard => render_dashboard(frame, &state),
-            Screen::Processes => render_process_screen(frame, &state),
-            Screen::Alerts => render_alert_screen(frame, &state),
-            Screen::History => render_history_screen(frame, &state),
+        terminal.draw(|frame| {
+            match state.screen {
+                Screen::Dashboard => render_dashboard(frame, &state),
+                Screen::Processes => render_process_screen(frame, &state),
+                Screen::Alerts => render_alert_screen(frame, &state),
+                Screen::History => render_history_screen(frame, &state),
+            }
+            if let Some(intent) = state.deep_capture_dialog {
+                render_deep_capture_dialog(frame, intent);
+            }
         })?;
         if event::poll(Duration::from_millis(100))? {
             if let Event::Key(key) = event::read()? {
@@ -95,6 +101,9 @@ fn run_loop(
 }
 
 fn handle_key(state: &mut AppState, key: KeyEvent) -> Command {
+    if state.deep_capture_dialog.is_some() {
+        return handle_deep_capture_key(state, key);
+    }
     let command = command_for(key);
     match command {
         Command::Quit => {}
@@ -126,6 +135,7 @@ fn handle_key(state: &mut AppState, key: KeyEvent) -> Command {
                 state.recording_error = Some(error.to_string());
             }
         }
+        Command::ToggleScope => state.toggle_record_scope(),
         Command::Select => {
             if let Err(error) = state.load_selected_recording() {
                 state.recording_error = Some(error.to_string());
@@ -136,4 +146,19 @@ fn handle_key(state: &mut AppState, key: KeyEvent) -> Command {
         _ => {}
     }
     command
+}
+
+fn handle_deep_capture_key(state: &mut AppState, key: KeyEvent) -> Command {
+    if key.kind != KeyEventKind::Press {
+        return Command::None;
+    }
+    if key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL) {
+        return Command::Quit;
+    }
+    match key.code {
+        KeyCode::Char('y') | KeyCode::Enter => state.confirm_deep_capture(),
+        KeyCode::Char('n') | KeyCode::Esc => state.cancel_deep_capture(),
+        _ => {}
+    }
+    Command::None
 }

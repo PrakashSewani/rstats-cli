@@ -1,7 +1,7 @@
 use std::{fs, time::Duration};
 use tempfile::tempdir;
 
-use rstats::{cli::Cli, config::Config, tui::theme::ThemeName};
+use rstats::{cli::Cli, config::Config, recording::CaptureScope, tui::theme::ThemeName};
 
 #[test]
 fn cli_values_override_file_values() {
@@ -69,6 +69,63 @@ fn rejects_unknown_theme_in_config_file() {
     let directory = tempdir().unwrap();
     let path = directory.path().join("config.toml");
     fs::write(&path, "theme = \"banana\"\n").unwrap();
+    let cli = Cli {
+        interval_ms: None,
+        history_seconds: None,
+        config: Some(path),
+        recording_dir: None,
+        monitor: false,
+        open_recordings: false,
+        once: false,
+        watch: false,
+        json: false,
+        theme: None,
+        export: None,
+        format: None,
+        output: None,
+        report: None,
+        no_color: false,
+        log_level: None,
+    };
+    assert!(Config::from_cli(&cli).is_err());
+}
+
+#[test]
+fn record_scope_defaults_to_standard_and_reads_from_file() {
+    let directory = tempdir().unwrap();
+    let path = directory.path().join("config.toml");
+    fs::write(&path, "interval_ms = 200\n").unwrap();
+    let cli = Cli {
+        interval_ms: None,
+        history_seconds: None,
+        config: Some(path),
+        recording_dir: None,
+        monitor: false,
+        open_recordings: false,
+        once: false,
+        watch: false,
+        json: false,
+        theme: None,
+        export: None,
+        format: None,
+        output: None,
+        report: None,
+        no_color: false,
+        log_level: None,
+    };
+    assert_eq!(Config::from_cli(&cli).unwrap().record_scope, CaptureScope::Standard);
+
+    let path = directory.path().join("deep.toml");
+    fs::write(&path, "record_scope = \"deep\"\n").unwrap();
+    let cli = Cli { config: Some(path), ..cli };
+    assert_eq!(Config::from_cli(&cli).unwrap().record_scope, CaptureScope::Deep);
+}
+
+#[test]
+fn rejects_unknown_record_scope_in_config_file() {
+    let directory = tempdir().unwrap();
+    let path = directory.path().join("config.toml");
+    fs::write(&path, "record_scope = \"maximum\"\n").unwrap();
     let cli = Cli {
         interval_ms: None,
         history_seconds: None,

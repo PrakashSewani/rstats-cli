@@ -1,11 +1,14 @@
-use std::time::{Duration, SystemTime};
+use std::{
+    fs,
+    time::{Duration, SystemTime},
+};
 use tempfile::tempdir;
 
 use rstats::{
-    app::AppState,
+    app::{AppState, DeepCaptureIntent},
     config::Config,
-    model::{CpuSnapshot, DiskSnapshot, MetricKind, NetworkSnapshot, Snapshot},
-    recording::Recorder,
+    model::{CpuSnapshot, DiskSnapshot, MetricKind, NetworkSnapshot, ProcessSnapshot, Snapshot},
+    recording::{CaptureScope, Recorder},
 };
 
 fn config(directory: std::path::PathBuf) -> Config {
@@ -17,6 +20,7 @@ fn config(directory: std::path::PathBuf) -> Config {
         bell: false,
         theme: Default::default(),
         alerts: Vec::new(),
+        record_scope: CaptureScope::Standard,
     }
 }
 
@@ -48,10 +52,10 @@ fn state_records_snapshots_and_keeps_session_history_after_stop() {
 #[test]
 fn changing_recording_selection_clears_loaded_session() {
     let directory = tempdir().unwrap();
-    let mut first = Recorder::start(directory.path()).unwrap();
+    let mut first = Recorder::start(directory.path(), CaptureScope::Standard).unwrap();
     first.record(&Snapshot::default()).unwrap();
     first.finish().unwrap();
-    let mut second = Recorder::start(directory.path()).unwrap();
+    let mut second = Recorder::start(directory.path(), CaptureScope::Standard).unwrap();
     second.record(&Snapshot::default()).unwrap();
     second.finish().unwrap();
 
@@ -92,4 +96,64 @@ fn state_tracks_network_and_disk_histories() {
     assert_eq!(transmit.as_vec(), vec![0.0, 1_000.0]);
     let disk = state.histories.get(&MetricKind::Disk).unwrap();
     assert_eq!(disk.as_vec(), vec![60.0, 80.0]);
+}
+
+#[test]
+fn deep_capture_toggle_requires_confirmation_before_collecting() {
+    let directory = tempdir().unwrap();
+    let mut state = AppState::new(config(directory.path().to_path_buf()));
+
+    state.toggle_record_scope();
+    assert_eq!(state.deep_capture_dialog, Some(DeepCaptureIntent::Enable));
+    assert_eq!(state.record_scope, CaptureScope::Standard);
+    assert!(state.recorder.is_none());
+
+    state.confirm_deep_capture();
+    assert_eq!(state.record_scope, CaptureScope::Deep);
+    assert!(state.deep_capture_confirmed);
+    assert!(state.deep_capture_dialog.is_none());
+
+    state.toggle_recording().unwrap();
+    assert!(state.recorder.is_some());
+    state.apply_snapshot(Snapshot {
+        timestamp: SystemTime::UNIX_EPOCH,
+        processes: vec![ProcessSnapshot { pid: 7, ..ProcessSnapshot::default() }],
+        ..Snapshot::default()
+    });
+    let summary = state.stop_recording().unwrap().unwrap();
+    let contents = fs::read_to_string(&summary.path).unwrap();
+    let sample: serde_json::Value = serde_json::from_str(contents.lines().nth(1).unwrap()).unwrap();
+    assert_eq!(sample["snapshot"]["processes"][0]["pid"], 7);
+}
+
+#[test]
+fn deep_scope_from_config_waits_for_confirmation_to_start() {
+    let directory = tempdir().unwrap();
+    let mut config = config(directory.path().to_path_buf());
+    config.record_scope = CaptureScope::Deep;
+    let mut state = AppState::new(config);
+
+    state.toggle_recording().unwrap();
+    assert!(state.recorder.is_none());
+    assert_eq!(state.deep_capture_dialog, Some(DeepCaptureIntent::Start));
+
+    state.cancel_deep_capture();
+    assert!(state.recorder.is_none());
+    assert!(state.deep_capture_dialog.is_none());
+
+    state.toggle_recording().unwrap();
+    state.confirm_deep_capture();
+    assert!(state.recorder.is_some());
+    state.stop_recording().unwrap();
+}
+
+#[test]
+fn capture_scope_cannot_change_while_recording() {
+    let directory = tempdir().unwrap();
+    let mut state = AppState::new(config(directory.path().to_path_buf()));
+    state.toggle_recording().unwrap();
+    state.toggle_record_scope();
+    assert_eq!(state.record_scope, CaptureScope::Standard);
+    assert!(state.recording_error.is_some());
+    state.stop_recording().unwrap();
 }
