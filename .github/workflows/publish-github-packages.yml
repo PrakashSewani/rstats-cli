@@ -1,0 +1,65 @@
+name: Publish to GitHub Packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag whose rstats-cli tarball gets mirrored"
+        required: true
+        default: "v0.3.0"
+  workflow_call:
+    inputs:
+      tag:
+        description: "Release tag whose rstats-cli tarball gets mirrored"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://npm.pkg.github.com
+      - name: Fetch the published npm tarball from the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+        shell: bash
+        run: |
+          mkdir -p seed
+          gh release download "${TAG}" --repo "${GITHUB_REPOSITORY}" \
+            --pattern "rstats-cli-*.tgz" --dir seed
+          tar -xzf seed/rstats-cli-*.tgz -C seed
+          test -f seed/package/package.json
+      - name: Scope the package for the GitHub Packages namespace
+        shell: bash
+        run: |
+          node -e '
+            const fs = require("fs");
+            const path = "seed/package/package.json";
+            const pkg = JSON.parse(fs.readFileSync(path, "utf8"));
+            pkg.name = "@prakashsewani/rstats-cli";
+            pkg.publishConfig = { registry: "https://npm.pkg.github.com", access: "public" };
+            fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + "\n");
+            console.log(`publishing ${pkg.name}@${pkg.version}`);
+          '
+      - name: Publish to npm.pkg.github.com
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          version=$(node -p "require('./seed/package/package.json').version")
+          if npm view "@prakashsewani/rstats-cli@${version}" version >/dev/null 2>&1; then
+            echo "@prakashsewani/rstats-cli@${version} is already on GitHub Packages; nothing to do"
+          else
+            npm publish ./seed/package --access public
+          fi

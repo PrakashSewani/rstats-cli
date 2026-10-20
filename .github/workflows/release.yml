@@ -184,6 +184,15 @@ jobs:
             npm publish ./dist/rstats-cli-*.tgz --access public --provenance
           fi
 
+  publish-github-packages:
+    needs: publish
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/publish-github-packages.yml
+    with:
+      tag: ${{ github.ref_name }}
+
   github-release:
     needs: publish
     runs-on: ubuntu-latest
